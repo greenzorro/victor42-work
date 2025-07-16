@@ -357,26 +357,33 @@ a:hover {
         width: 100%;
         padding: 0; /* Adjusted padding for non-card style */
         margin-bottom: 25px; /* Adjusted margin-bottom for non-PC */
+        text-align: center;
     }
     
     .profile-avatar {
         width: 80px; /* Adjusted avatar size to match blog */
         height: 80px;
-        margin-bottom: 12px; /* Adjusted margin */
+        margin: 0 auto 12px auto;
     }
     
     .profile-name {
         font-size: 1.1rem; /* Adjusted font size to match blog */
         margin-bottom: 8px; /* Adjusted margin */
+        text-align: center;
     }
     
     .profile-bio {
         font-size: 0.8rem; /* Adjusted font size to match blog */
         margin-bottom: 16px; /* Adjusted margin */
+        text-align: center;
     }
     
     .profile-button {
         font-size: 0.8rem; /* Adjusted font size to match blog */
+        text-align: center;
+        display: block;
+        width: fit-content;
+        margin: 0 auto;
     }
     
     .products-grid {
