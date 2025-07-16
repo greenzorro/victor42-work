@@ -1,25 +1,60 @@
-<!--
-
--->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="0; url=https://victor42.eth.limo/page/tools/">
-    <title>跳转中...</title>
+    <title id="page-title">Victor42的创造营地 - 小玩意工具集合</title>
+    <meta name="description" content="Victor42的创造营地 - 小玩意工具集合">
+    
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-14SGRFWENB"></script>
     <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-
     gtag('config', 'G-14SGRFWENB');
     </script>
+    
+    <!-- 外部样式文件 -->
+    <link rel="stylesheet" href="./assets/css/style.css">
 </head>
 <body>
-    <p>正在跳转到 Victor_42 的创造营地...</p>
-    <p>如果没有自动跳转，请<a href="https://victor42.eth.limo/page/tools/">点击这里</a></p>
+    <div class="container">
+        <div class="loading" id="loading">
+            <div class="loading-spinner"></div>
+            <p>正在加载小玩意...</p>
+        </div>
+        
+        <div class="error" id="error" style="display: none;">
+            <h2>😕 加载失败</h2>
+            <p>无法加载产品数据，请检查网络连接或稍后重试。</p>
+        </div>
+        
+        <div id="content" style="display: none;">
+            <div class="main-layout">
+                <!-- 个人信息区域 -->
+                <div class="profile-section" id="profile-section">
+                    <!-- 个人信息将通过JavaScript动态生成 -->
+                </div>
+                
+                <!-- 产品列表区域 -->
+                <div class="products-section">
+                    <div class="description-card">
+                <p id="description"></p>
+            </div>
+            <div class="products-grid" id="products-grid">
+                <!-- 产品卡片将通过JavaScript动态生成 -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer">
+                <p id="footer-text">© 2011 - 2025 Victor42</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 外部脚本文件 -->
+    <script src="./assets/js/main.js"></script>
 </body>
 </html>

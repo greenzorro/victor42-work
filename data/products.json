@@ -1,24 +1,35 @@
 {
-  "title": "小玩意",
-  "description": "我工作与生活中遇会遇到一些问题，有时自己动手做个工具就能满足需求，或许这些小玩意你也用得上。",
+  "title": "Victor42",
+  "description": "Victor42的小玩意：我工作与生活中遇会遇到一些问题，有时自己动手做个工具就能满足需求，或许这些小玩意你也用得上。",
+  "profile": {
+    "avatar": "https://cdn.victor42.work/assets/pale-blue-dot.jpg",
+    "bio": "科学、纪录片、博物馆爱好者；Excel狂魔；蹩脚开发者；UI/UX设计师；生活观察者<br>Science/documentary/museum enthusiast, Excel weirdo, Underdog developer, UI/UX designer, Life witness",
+    "website": {
+      "title": "个人博客",
+      "url": "https://victor42.eth.limo/"
+    }
+  },
   "products": [
     {
       "emoji": "🎵",
       "name": "小熊歌单搬家",
       "url": "https://playlist.victor42.work/",
-      "description": "一款浏览器插件，轻松迁移歌单，在主流音乐平台间来去自如。"
+      "description": "一款浏览器插件，轻松迁移歌单，在主流音乐平台间来去自如。",
+      "image": "https://cdn.victor42.work/products/%E5%B0%8F%E7%86%8A%E6%AD%8C%E5%8D%95%E6%90%AC%E5%AE%B6.webp"
     },
     {
       "emoji": "📄",
-      "name": "Google AI Studio Easy Use",
+      "name": "谷歌AI Studio脚本",
       "url": "https://greasyfork.org/en/scripts/523344-google-ai-studio-%E9%BB%98%E8%AE%A4%E7%B3%BB%E7%BB%9F%E6%8F%90%E7%A4%BA%E8%AF%8D",
-      "description": "自动设置Google AI Studio的系统提示词，即使新开对话，全局设置的系统提示词也能保留。还包含方便的快捷键和字号大小调整功能。"
+      "description": "自动设置Google AI Studio的系统提示词，新对话自动填入，外加快捷键和字号大小设置。",
+      "image": "https://cdn.victor42.work/products/Google%20Al%20Studio%20Easy%20Use.webp"
     },
     {
       "emoji": "📐",
       "name": "UI画布尺寸计算器",
       "url": "https://ui-size.victor42.work/",
-      "description": "面对陌生的设备，帮你解决\"画布该设成多大\"的问题。"
+      "description": "面对陌生的设备，帮你解决\"画布该设成多大\"的问题。",
+      "image": "https://cdn.victor42.work/products/UI%E7%94%BB%E5%B8%83%E5%B0%BA%E5%AF%B8%E8%AE%A1%E7%AE%97%E5%99%A8.webp"
     },
     {
       "emoji": "📊",

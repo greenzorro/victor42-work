@@ -1,0 +1,467 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background: #f5f5fa;
+    min-height: 100vh;
+}
+
+a {
+    color: #2A9D8F;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: none;
+}
+
+.container {
+    max-width: 1180px; /* PC端固定最大宽度 */
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+/* 主布局区域 */
+.main-layout {
+    display: flex;
+    gap: 40px;
+    align-items: flex-start;
+}
+
+/* 个人信息区域 */
+.profile-section {
+    flex: 0 0 180px;
+    padding: 0; /* No padding for non-card style */
+    text-align: left; /* Left align content */
+    background: none; /* No background */
+    border-radius: 0; /* No border-radius */
+    box-shadow: none; /* No box-shadow */
+}
+
+@media (min-width: 1180px) {
+    .profile-section {
+        position: sticky;
+        top: 200px;
+        align-self: flex-start;
+    }
+}
+
+.profile-avatar {
+    width: 100px; /* Adjusted avatar size */
+    height: 100px;
+    border-radius: 50%;
+    margin: 0 0 16px 0; /* Left-aligned margin */
+    overflow: hidden;
+    display: block;
+}
+
+.profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-name {
+    font-size: 1.3rem; /* Adjusted font size */
+    font-weight: 700; /* Adjusted font weight */
+    color: #2c3e50; /* Adjusted color */
+    margin-bottom: 8px; /* Adjusted margin */
+    text-align: left; /* Left align name */
+}
+
+.profile-bio {
+    font-size: 0.9rem; /* Adjusted font size */
+    color: #555; /* Adjusted color */
+    line-height: 1.4;
+    margin-bottom: 16px; /* Adjusted margin */
+    text-align: left; /* Left align bio */
+}
+
+.profile-button {
+    color: #2A9D8F;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.9rem; /* Adjusted font size */
+    transition: all 0.3s ease;
+    display: inline-block;
+    text-align: left; /* Left align button */
+}
+
+.profile-button:hover {
+    color: #219789;
+}
+
+
+/* 产品列表区域 */
+.products-section {
+    flex: 1;
+}
+
+/* 描述卡片 */
+.description-card {
+    background: url('https://cdn.victor42.work/products/tools.webp') no-repeat center center;
+    background-size: cover;
+    color: white;
+    border-radius: 16px;
+    padding: 24px;
+    margin: 24px 0;
+    box-shadow: 
+        0 4px 20px rgba(42, 157, 143, 0.3),
+        0 8px 40px rgba(42, 157, 143, 0.15);
+    position: relative; /* Needed for overlay */
+    overflow: hidden; /* Ensures overlay doesn't spill */
+}
+
+.description-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(42, 157, 143, 0.7); /* Dark overlay for readability */
+    z-index: 1;
+}
+
+.description-card p {
+    position: relative; /* Bring text above overlay */
+    z-index: 2;
+}
+
+.description-card p {
+    margin: 0;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+
+
+/* PC端：4列栅格系统 */
+.products-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    auto-rows: 288px;
+}
+
+/* 小卡片：1x1 */
+.small-card {
+    grid-column: span 1;
+    grid-row: span 1;
+}
+
+/* 大卡片：2x1 */
+.large-card {
+    grid-column: span 2;
+    grid-row: span 1;
+}
+
+/* PC端大卡片：横向布局，图片撑满高度 */
+.large-card .product-image {
+    width: 50%;
+    height: 100%;
+    padding-bottom: 0;
+}
+
+.large-card .product-content {
+    flex: 1;
+    padding: 24px;
+}
+
+/* 产品卡片基础样式 */
+.product-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 
+        0 4px 20px rgba(0,0,0,0.08),
+        0 8px 40px rgba(0,0,0,0.05);
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    /* 重置链接样式 */
+    text-decoration: none;
+    color: inherit;
+}
+
+.product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 
+        0 12px 40px rgba(0,0,0,0.12),
+        0 20px 80px rgba(0,0,0,0.08);
+    /* 确保悬停时链接样式不变 */
+    text-decoration: none;
+    color: inherit;
+}
+
+/* 产品图片 */
+.product-image {
+    flex: 0 0 auto;
+    width: 40%;
+    height: 0;
+    padding-bottom: 30%; /* 40% * 3/4 = 30% */
+    overflow: hidden;
+    background: #2A9D8F;
+    position: relative;
+}
+
+.product-image img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+
+
+/* 产品内容 */
+.product-content {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+/* 大卡片特殊样式 */
+.large-card .product-name {
+    font-size: 1rem;
+    margin-bottom: 8px;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.large-card .product-emoji {
+    font-size: 2rem;
+    margin-bottom: 12px;
+    line-height: 1;
+}
+
+.large-card .product-description {
+    font-size: 0.8rem;
+    color: #7f8c8d;
+    line-height: 1.5;
+}
+
+/* 小卡片特殊样式 */
+.small-card .product-content {
+    padding: 16px;
+}
+
+.small-card .product-emoji {
+    font-size: 2rem;
+    margin-bottom: 8px;
+    line-height: 1;
+}
+
+.small-card .product-name {
+    font-size: 1rem;
+    margin-bottom: 6px;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.small-card .product-description {
+    font-size: 0.8rem;
+    color: #7f8c8d;
+    line-height: 1.4;
+}
+
+
+
+/* 没有图片的卡片：竖直布局 */
+.product-card:not(:has(.product-image)) {
+    flex-direction: column;
+}
+
+.product-card:not(:has(.product-image)) .product-content {
+    height: 100%;
+    justify-content: flex-start;
+    text-align: left;
+}
+
+/* 加载动画 */
+.loading {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading p {
+    color: #7f8c8d;
+    font-size: 1.1rem;
+}
+
+/* 错误提示 */
+.error {
+    text-align: center;
+    padding: 60px 20px;
+    color: #e74c3c;
+}
+
+.error h2 {
+    margin-bottom: 10px;
+    font-size: 2rem;
+}
+
+/* 页脚 */
+.footer {
+    text-align: center;
+    margin-top: 60px;
+    padding-top: 40px;
+}
+
+.footer p {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}
+
+/* ======================================
+   响应式设计：2个断点，3种情况
+   1. PC端（>1180px）：整体固定宽度居中，PC端布局
+   2. 中等屏幕（640px-1180px）：整体固定宽度居中，移动端布局
+   3. 移动端（<640px）：整体宽度撑满容器，移动端布局
+   ====================================== */
+
+/* 中等屏幕和移动端共用的布局样式 */
+@media (max-width: 1180px) {
+    /* 主布局垂直排列 */
+    .main-layout {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    /* 个人信息区域 */
+    .profile-section {
+        flex: none;
+        width: 100%;
+        padding: 0; /* Adjusted padding for non-card style */
+        margin-bottom: 25px; /* Adjusted margin-bottom for non-PC */
+    }
+    
+    .profile-avatar {
+        width: 80px; /* Adjusted avatar size to match blog */
+        height: 80px;
+        margin-bottom: 12px; /* Adjusted margin */
+    }
+    
+    .profile-name {
+        font-size: 1.1rem; /* Adjusted font size to match blog */
+        margin-bottom: 8px; /* Adjusted margin */
+    }
+    
+    .profile-bio {
+        font-size: 0.8rem; /* Adjusted font size to match blog */
+        margin-bottom: 16px; /* Adjusted margin */
+    }
+    
+    .profile-button {
+        font-size: 0.8rem; /* Adjusted font size to match blog */
+    }
+    
+    .products-grid {
+        grid-template-columns: repeat(2, 1fr);
+        auto-rows: 230px;
+        gap: 15px;
+    }
+    
+    /* 大卡片：1x2，纵向布局 */
+    .large-card {
+        grid-column: span 1;
+        grid-row: span 2;
+        flex-direction: column;
+    }
+    
+    /* 大卡片图片撑满宽度 */
+    .large-card .product-image {
+        width: 100%;
+        height: 0;
+        padding-bottom: 75%; /* 4:3 比例 */
+    }
+    
+    /* 小卡片占1列 */
+    .small-card {
+        grid-column: span 1;
+        grid-row: span 1;
+    }
+    
+
+    
+    /* 图片调整 */
+    .product-image {
+        width: 35%;
+        height: 0;
+        padding-bottom: 26.25%; /* 35% * 3/4 = 26.25% */
+    }
+    
+    /* 字体大小调整 */
+    .large-card .product-emoji,
+    .small-card .product-emoji {
+        font-size: 1.8rem;
+    }
+    
+    .large-card .product-name {
+        font-size: 1.1rem;
+    }
+    
+    .small-card .product-name {
+        font-size: 0.9rem;
+    }
+    
+    .large-card .product-description,
+    .small-card .product-description {
+        font-size: 0.75rem;
+    }
+    
+    /* 移动端描述卡片调整 */
+    .description-card {
+        margin: 16px 0;
+        padding: 20px;
+    }
+    
+    .description-card p {
+        font-size: 1rem;
+    }
+}
+
+/* 中等屏幕：固定宽度居中，使用移动端布局 */
+@media (min-width: 640px) and (max-width: 1180px) {
+    .container {
+        max-width: 600px; /* 中等屏幕固定宽度 */
+        margin: 0 auto;
+        padding: 40px 20px;
+    }
+}
+
+/* 移动端：撑满容器，使用移动端布局 */
+@media (max-width: 640px) {
+    .container {
+        max-width: none; /* 移动端撑满屏幕 */
+        padding: 20px 15px;
+    }
+}
