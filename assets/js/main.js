@@ -25,8 +25,7 @@ async function loadProducts() {
 
 // 渲染页面
 function renderPage(data) {
-    // 设置页面标题和描述
-    document.getElementById('page-title').textContent = data.title;
+    // 设置页面描述
     document.getElementById('description').textContent = data.description;
     
     // 设置动态年份
@@ -60,11 +59,11 @@ function renderProfile(profile, title) {
     
     profileSection.innerHTML = `
         <div class="profile-avatar">
-            <img src="${profile.avatar}" alt="${title}" loading="lazy">
+            <img src="${profile.avatar}" alt="Victor42头像照片" loading="lazy" itemprop="image">
         </div>
-        <div class="profile-name">${title}</div>
-        <div class="profile-bio">${profile.bio}</div>
-        <a href="${profile.website.url}" target="_blank" rel="noopener noreferrer" class="profile-button">
+        <div class="profile-name" itemprop="name">${title}</div>
+        <div class="profile-bio" itemprop="description">${profile.bio}</div>
+        <a href="${profile.website.url}" target="_blank" rel="noopener noreferrer" class="profile-button" itemprop="url">
             ${profile.website.title} →
         </a>
     `;
@@ -77,15 +76,23 @@ function createProductCard(product, cardSize) {
     card.href = product.url;
     card.target = '_blank';
     card.rel = 'noopener noreferrer';
+    card.setAttribute('itemscope', '');
+    card.setAttribute('itemtype', 'https://schema.org/SoftwareApplication');
+    card.setAttribute('itemprop', 'itemListElement');
+    
+    // 添加aria-label提升可访问性
+    card.setAttribute('aria-label', `访问${product.name}：${product.description}`);
     
     card.innerHTML = `
         ${product.image ? `<div class="product-image">
-            <img src="${product.image}" alt="${product.name}" loading="lazy">
+            <img src="${product.image}" alt="${product.name}产品截图 - ${product.description}" loading="lazy" itemprop="image">
         </div>` : ''}
         <div class="product-content">
-            <div class="product-emoji">${product.emoji}</div>
-            <h3 class="product-name">${product.name}</h3>
-            <p class="product-description">${product.description}</p>
+            <div class="product-emoji" aria-hidden="true">${product.emoji}</div>
+            <h3 class="product-name" itemprop="name">${product.name}</h3>
+            <p class="product-description" itemprop="description">${product.description}</p>
+            <meta itemprop="url" content="${product.url}">
+            <meta itemprop="applicationCategory" content="WebApplication">
         </div>
     `;
     
@@ -96,13 +103,4 @@ function createProductCard(product, cardSize) {
 function showError() {
     document.getElementById('loading').style.display = 'none';
     document.getElementById('error').style.display = 'block';
-}
-
-// 等页面加载完成后初始化（备用方案）
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-        loadProducts();
-    });
-} else {
-    loadProducts();
 } 
