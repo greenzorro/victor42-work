@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+Allow: /assets/
+Allow: /data/
+
+# 禁止抓取不必要的文件
+Disallow: *.json$
+Disallow: /node_modules/
+Disallow: /.git/
+Disallow: /*.log$
+Disallow: /*.tmp$
+
+# 网站地图位置
+Sitemap: https://work.victor42.work/sitemap.xml
+
+# 爬取延迟（可选）
+Crawl-delay: 1 

@@ -19,7 +19,7 @@
     },
     {
       "emoji": "📄",
-      "name": "谷歌AI Studio脚本",
+      "name": "谷歌 AI Studio 脚本",
       "url": "https://greasyfork.org/en/scripts/523344-google-ai-studio-%E9%BB%98%E8%AE%A4%E7%B3%BB%E7%BB%9F%E6%8F%90%E7%A4%BA%E8%AF%8D",
       "description": "自动设置Google AI Studio的系统提示词，新对话自动填入，外加快捷键和字号大小设置。",
       "image": "https://cdn.victor42.work/products/Google%20Al%20Studio%20Easy%20Use.webp"

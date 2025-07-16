@@ -37,11 +37,11 @@ a:hover {
 /* 个人信息区域 */
 .profile-section {
     flex: 0 0 180px;
-    padding: 0; /* No padding for non-card style */
-    text-align: left; /* Left align content */
-    background: none; /* No background */
-    border-radius: 0; /* No border-radius */
-    box-shadow: none; /* No box-shadow */
+    padding: 0;
+    text-align: left;
+    background: none;
+    border-radius: 0;
+    box-shadow: none;
 }
 
 @media (min-width: 1180px) {
@@ -53,10 +53,10 @@ a:hover {
 }
 
 .profile-avatar {
-    width: 100px; /* Adjusted avatar size */
+    width: 100px;
     height: 100px;
     border-radius: 50%;
-    margin: 0 0 16px 0; /* Left-aligned margin */
+    margin: 0 0 16px 0;
     overflow: hidden;
     display: block;
 }
@@ -132,9 +132,6 @@ a:hover {
 .description-card p {
     position: relative; /* Bring text above overlay */
     z-index: 2;
-}
-
-.description-card p {
     margin: 0;
     font-size: 1.1rem;
     line-height: 1.6;
@@ -209,7 +206,6 @@ a:hover {
     height: 0;
     padding-bottom: 30%; /* 40% * 3/4 = 30% */
     overflow: hidden;
-    background: #2A9D8F;
     position: relative;
 }
 
@@ -220,7 +216,6 @@ a:hover {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.3s ease;
 }
 
 
@@ -353,7 +348,7 @@ a:hover {
     /* 主布局垂直排列 */
     .main-layout {
         flex-direction: column;
-        gap: 20px;
+        gap: 13px;
     }
     
     /* 个人信息区域 */
@@ -390,18 +385,18 @@ a:hover {
         gap: 15px;
     }
     
-    /* 大卡片：1x2，纵向布局 */
+    /* 大卡片：2x1，横向布局 */
     .large-card {
-        grid-column: span 1;
-        grid-row: span 2;
-        flex-direction: column;
+        grid-column: span 2;
+        grid-row: span 1;
+        flex-direction: row;
     }
     
-    /* 大卡片图片撑满宽度 */
+    /* 大卡片图片保持左侧显示 */
     .large-card .product-image {
-        width: 100%;
-        height: 0;
-        padding-bottom: 75%; /* 4:3 比例 */
+        width: 50%;
+        height: 100%;
+        padding-bottom: 0;
     }
     
     /* 小卡片占1列 */
@@ -419,23 +414,20 @@ a:hover {
         padding-bottom: 26.25%; /* 35% * 3/4 = 26.25% */
     }
     
-    /* 字体大小调整 */
+    /* 字体大小调整 - 统一大小卡片字号 */
     .large-card .product-emoji,
     .small-card .product-emoji {
         font-size: 1.8rem;
     }
     
-    .large-card .product-name {
-        font-size: 1.1rem;
-    }
-    
+    .large-card .product-name,
     .small-card .product-name {
-        font-size: 0.9rem;
+        font-size: 1rem;
     }
     
     .large-card .product-description,
     .small-card .product-description {
-        font-size: 0.75rem;
+        font-size: 0.8rem;
     }
     
     /* 移动端描述卡片调整 */
@@ -446,6 +438,11 @@ a:hover {
     
     .description-card p {
         font-size: 1rem;
+    }
+    
+    /* 移动端页脚间距调整 */
+    .footer {
+        margin-top: 30px;
     }
 }
 
@@ -462,6 +459,6 @@ a:hover {
 @media (max-width: 640px) {
     .container {
         max-width: none; /* 移动端撑满屏幕 */
-        padding: 20px 15px;
+        padding: 30px 20px;
     }
 }
