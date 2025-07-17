@@ -5,13 +5,16 @@
 
 // DOM加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
-    loadProducts();
+    // 优化的初始化顺序
+    updateThemeIcon(); // 更新图标状态
+    loadProducts(); // 优先加载主要内容
+    initializeBackgroundVideo(); // 初始化静态背景视频
 });
 
 // 加载产品数据
 async function loadProducts() {
     try {
-        const response = await fetch('./data/products.json');
+        const response = await fetch('./data.json');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -30,7 +33,7 @@ function renderPage(data) {
     
     // 设置动态年份
     const currentYear = new Date().getFullYear();
-    document.getElementById('footer-text').innerHTML = `© 2011 - ${currentYear} <a href="${data.profile.website.url}" target="_blank" rel="noopener noreferrer">Victor42</a>`;
+    document.getElementById('footer-text').innerHTML = `© 2011 - ${currentYear} <a href="${data.profile.website.url}" target="_blank" rel="noopener noreferrer">Victor42</a> | <a href="https://github.com/greenzorro/victor42-work" target="_blank" rel="noopener noreferrer">Code</a>`;
     
     // 渲染个人信息，传入title用于显示
     renderProfile(data.profile, data.title);
@@ -103,4 +106,92 @@ function createProductCard(product, cardSize) {
 function showError() {
     document.getElementById('loading').style.display = 'none';
     document.getElementById('error').style.display = 'block';
+}
+
+// 更新主题图标状态（主题已在head中设置）
+function updateThemeIcon() {
+    const html = document.documentElement;
+    const themeIcon = document.querySelector('.theme-icon');
+    const currentTheme = html.getAttribute('data-theme');
+    
+    if (themeIcon) {
+        themeIcon.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+    }
+    
+    // 添加切换按钮事件监听器
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', toggleTheme);
+    }
+    
+    // 监听系统主题变化
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+        if (!localStorage.getItem('theme')) {
+            applyTheme(e.matches ? 'dark' : 'light');
+        }
+    });
+}
+
+function applyTheme(theme) {
+    const html = document.documentElement;
+    const themeIcon = document.querySelector('.theme-icon');
+    const backgroundVideo = document.querySelector('.background-video');
+    
+    if (theme === 'dark') {
+        html.setAttribute('data-theme', 'dark');
+        if (themeIcon) themeIcon.textContent = '☀️';
+        
+        // 播放背景视频
+        if (backgroundVideo) {
+            backgroundVideo.play().catch(error => {
+                console.log('背景视频播放失败:', error);
+            });
+        }
+    } else {
+        html.removeAttribute('data-theme');
+        if (themeIcon) themeIcon.textContent = '🌙';
+        
+        // 暂停背景视频
+        if (backgroundVideo) {
+            backgroundVideo.pause();
+        }
+    }
+}
+
+function toggleTheme() {
+    const html = document.documentElement;
+    const currentTheme = html.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    
+    // 应用新主题
+    applyTheme(newTheme);
+    
+    // 保存用户偏好
+    localStorage.setItem('theme', newTheme);
+}
+
+// 初始化背景视频（静态元素）
+function initializeBackgroundVideo() {
+    const backgroundVideo = document.querySelector('.background-video');
+    const html = document.documentElement;
+    const isDarkMode = html.getAttribute('data-theme') === 'dark';
+    
+    if (backgroundVideo) {
+        // 优化的事件监听
+        backgroundVideo.addEventListener('error', function() {
+            console.log('背景视频加载失败，使用纯色背景');
+            backgroundVideo.style.display = 'none';
+        });
+        
+        backgroundVideo.addEventListener('loadeddata', function() {
+            console.log('背景视频加载成功');
+        });
+        
+        // 根据当前主题决定是否播放
+        if (isDarkMode) {
+            backgroundVideo.play().catch(error => {
+                console.log('背景视频播放失败:', error);
+            });
+        }
+    }
 } 

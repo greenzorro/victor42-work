@@ -25,10 +25,17 @@
       "image": "https://cdn.victor42.work/products/Google%20Al%20Studio%20Easy%20Use.webp"
     },
     {
+      "emoji": "🎨",
+      "name": "自动化AI插画生成系统",
+      "url": "https://qvokpfxqsh.feishu.cn/wiki/KJMgwMn0wiXeiqkFvHHcHFxAn8B?from=from_copylink",
+      "description": "一份详细的AI插画批量生成手册，包含模型训练、ComfyUI工作流、多维表、Python代码、Photoshop改图技巧等。",
+      "image": "https://cdn.victor42.work/products/%E8%87%AA%E5%8A%A8%E5%8C%96AI%E6%8F%92%E7%94%BB%E7%94%9F%E6%88%90%E7%B3%BB%E7%BB%9F.webp"
+    },
+    {
       "emoji": "📐",
       "name": "UI画布尺寸计算器",
       "url": "https://ui-size.victor42.work/",
-      "description": "面对陌生的设备，帮你解决\"画布该设成多大\"的问题。",
+      "description": "面对陌生的设备，帮你解决“画布该设成多大”的问题。",
       "image": "https://cdn.victor42.work/products/UI%E7%94%BB%E5%B8%83%E5%B0%BA%E5%AF%B8%E8%AE%A1%E7%AE%97%E5%99%A8.webp"
     },
     {
@@ -107,7 +114,7 @@
       "emoji": "⬅️",
       "name": "HTML转markdown",
       "url": "http://greenzorro.github.io/something-to-markdown/",
-      "description": "翻译时要把英文原文转成我习惯的markdown格式，但有些网站的内容混有太多markdown不支持的标签。对内容格式有洁癖的我，一定要想个办法\"对付\"它们。"
+      "description": "翻译时要把英文原文转成我习惯的markdown格式，但有些网站的内容混有太多markdown不支持的标签。对内容格式有洁癖的我，一定要想个办法“对付”它们。"
     },
     {
       "emoji": "➡️",

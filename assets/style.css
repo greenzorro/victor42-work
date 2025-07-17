@@ -1,3 +1,37 @@
+/* CSS变量定义 - 浅色模式 */
+:root {
+    --color-primary: #2A9D8F;
+    --color-primary-hover: #219789;
+    --color-text: #333;
+    --color-text-secondary: #555;
+    --color-text-muted: #7f8c8d;
+    --color-text-heading: #2c3e50;
+    --color-background: #f5f5fa;
+    --color-card-background: #ffffff;
+    --color-card-shadow: rgba(0,0,0,0.08);
+    --color-card-shadow-hover: rgba(0,0,0,0.12);
+    --color-loading-bg: #f3f3f3;
+    --color-loading-spinner: #667eea;
+    --color-error: #e74c3c;
+    --color-overlay: rgba(42, 157, 143, 0.7);
+}
+
+/* 深色模式变量 */
+[data-theme="dark"] {
+    --color-text: #e4e6ea;
+    --color-text-secondary: #b0b3b8;
+    --color-text-muted: #8a8d91;
+    --color-text-heading: #ffffff;
+    --color-background: #18191a;
+    --color-card-background: rgba(36, 37, 38, 0.4);
+    --color-card-shadow: rgba(0,0,0,0.3);
+    --color-card-shadow-hover: rgba(0,0,0,0.5);
+    --color-loading-bg: #3a3b3c;
+    --color-loading-spinner: #667eea;
+    --color-error: #f56565;
+    --color-overlay: rgba(42, 157, 143, 0.8);
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -7,19 +41,93 @@
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
     line-height: 1.6;
-    color: #333;
-    background: #f5f5fa;
+    color: var(--color-text);
+    background: var(--color-background);
     min-height: 100vh;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 a {
-    color: #2A9D8F;
+    color: var(--color-primary);
     text-decoration: none;
 }
 
 a:hover {
     text-decoration: none;
 }
+
+/* 主题切换按钮 */
+.theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    width: 50px;
+    height: 50px;
+    border: none;
+    border-radius: 50%;
+    background: var(--color-card-background);
+    color: var(--color-text);
+    box-shadow: 
+        0 4px 12px var(--color-card-shadow),
+        0 8px 24px var(--color-card-shadow);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    font-size: 20px;
+}
+
+.theme-toggle:hover {
+    transform: scale(1.1);
+    box-shadow: 
+        0 6px 16px var(--color-card-shadow-hover),
+        0 12px 32px var(--color-card-shadow-hover);
+}
+
+.theme-toggle:active {
+    transform: scale(0.95);
+}
+
+.theme-icon {
+    transition: transform 0.3s ease;
+}
+
+/* 深色模式时的图标旋转效果 */
+[data-theme="dark"] .theme-icon {
+    transform: rotate(180deg);
+}
+
+/* 背景视频 */
+.background-video {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+}
+
+/* 深色模式时显示背景视频 */
+[data-theme="dark"] .background-video {
+    opacity: 0.3;
+}
+
+/* 深色模式下的产品卡片优化 */
+[data-theme="dark"] .product-card {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .product-card:hover {
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+
 
 .container {
     max-width: 1180px; /* PC端固定最大宽度 */
@@ -70,21 +178,21 @@ a:hover {
 .profile-name {
     font-size: 1.3rem; /* Adjusted font size */
     font-weight: 700; /* Adjusted font weight */
-    color: #2c3e50; /* Adjusted color */
+    color: var(--color-text-heading); /* Adjusted color */
     margin-bottom: 8px; /* Adjusted margin */
     text-align: left; /* Left align name */
 }
 
 .profile-bio {
     font-size: 0.9rem; /* Adjusted font size */
-    color: #555; /* Adjusted color */
+    color: var(--color-text-secondary); /* Adjusted color */
     line-height: 1.4;
     margin-bottom: 16px; /* Adjusted margin */
     text-align: left; /* Left align bio */
 }
 
 .profile-button {
-    color: #2A9D8F;
+    color: var(--color-primary);
     text-decoration: none;
     font-weight: 500;
     font-size: 0.9rem; /* Adjusted font size */
@@ -94,7 +202,7 @@ a:hover {
 }
 
 .profile-button:hover {
-    color: #219789;
+    color: var(--color-primary-hover);
 }
 
 
@@ -125,7 +233,7 @@ a:hover {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(42, 157, 143, 0.7); /* Dark overlay for readability */
+    background: var(--color-overlay); /* Dark overlay for readability */
     z-index: 1;
 }
 
@@ -174,11 +282,11 @@ a:hover {
 
 /* 产品卡片基础样式 */
 .product-card {
-    background: white;
+    background: var(--color-card-background);
     border-radius: 20px;
     box-shadow: 
-        0 4px 20px rgba(0,0,0,0.08),
-        0 8px 40px rgba(0,0,0,0.05);
+        0 4px 20px var(--color-card-shadow),
+        0 8px 40px var(--color-card-shadow);
     overflow: hidden;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
@@ -192,8 +300,8 @@ a:hover {
 .product-card:hover {
     transform: translateY(-4px);
     box-shadow: 
-        0 12px 40px rgba(0,0,0,0.12),
-        0 20px 80px rgba(0,0,0,0.08);
+        0 12px 40px var(--color-card-shadow-hover),
+        0 20px 80px var(--color-card-shadow-hover);
     /* 确保悬停时链接样式不变 */
     text-decoration: none;
     color: inherit;
@@ -233,7 +341,7 @@ a:hover {
 .large-card .product-name {
     font-size: 1rem;
     margin-bottom: 8px;
-    color: #2c3e50;
+    color: var(--color-text-heading);
     font-weight: 600;
 }
 
@@ -245,7 +353,7 @@ a:hover {
 
 .large-card .product-description {
     font-size: 0.8rem;
-    color: #7f8c8d;
+    color: var(--color-text-muted);
     line-height: 1.5;
 }
 
@@ -263,13 +371,13 @@ a:hover {
 .small-card .product-name {
     font-size: 1rem;
     margin-bottom: 6px;
-    color: #2c3e50;
+    color: var(--color-text-heading);
     font-weight: 600;
 }
 
 .small-card .product-description {
     font-size: 0.8rem;
-    color: #7f8c8d;
+    color: var(--color-text-muted);
     line-height: 1.4;
 }
 
@@ -295,8 +403,8 @@ a:hover {
 .loading-spinner {
     width: 40px;
     height: 40px;
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid #667eea;
+    border: 4px solid var(--color-loading-bg);
+    border-top: 4px solid var(--color-loading-spinner);
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin: 0 auto 20px;
@@ -308,7 +416,7 @@ a:hover {
 }
 
 .loading p {
-    color: #7f8c8d;
+    color: var(--color-text-muted);
     font-size: 1.1rem;
 }
 
@@ -316,7 +424,7 @@ a:hover {
 .error {
     text-align: center;
     padding: 60px 20px;
-    color: #e74c3c;
+    color: var(--color-error);
 }
 
 .error h2 {
@@ -332,7 +440,7 @@ a:hover {
 }
 
 .footer p {
-    color: #7f8c8d;
+    color: var(--color-text-muted);
     font-size: 0.9rem;
 }
 
@@ -430,11 +538,13 @@ a:hover {
     .large-card .product-name,
     .small-card .product-name {
         font-size: 1rem;
+        color: var(--color-text-heading);
     }
     
     .large-card .product-description,
     .small-card .product-description {
         font-size: 0.8rem;
+        color: var(--color-text-muted);
     }
     
     /* 移动端描述卡片调整 */
