@@ -39,9 +39,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="https://cdn.victor42.work/assets/favicon-16x16.png">
     
     <!-- Performance and Preload -->
-    <link rel="preload" href="./data/products.json" as="fetch" crossorigin="anonymous">
-    <link rel="preload" href="./assets/css/style.css" as="style">
-    <link rel="preload" href="./assets/js/main.js" as="script">
+    
     <link rel="dns-prefetch" href="//cdn.victor42.work">
     
     <!-- Theme Color -->
@@ -111,10 +109,33 @@
     }
     </script>
     
-    <!-- 外部样式文件 -->
-    <link rel="stylesheet" href="./assets/css/style.css">
+        <!-- 外部样式文件 -->
+    <link rel="stylesheet" href="./assets/style.css">
+    
+    <!-- 主题初始化脚本 - 避免FOUC -->
+    <script>
+    (function() {
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+        
+        if (theme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    })();
+    </script>
 </head>
-<body>
+  <body>
+      <!-- 深色模式背景视频 -->
+      <video class="background-video" autoplay muted loop playsinline preload="auto">
+          <source src="https://cdn.victor42.work/products/milky-way.mp4" type="video/mp4">
+      </video>
+      
+      <!-- 主题切换按钮 -->
+      <button class="theme-toggle" id="theme-toggle" aria-label="切换深色模式">
+          <span class="theme-icon">🌙</span>
+      </button>
+
     <div class="container">
         <div class="loading" id="loading">
             <div class="loading-spinner"></div>
@@ -151,6 +172,6 @@
     </div>
 
     <!-- 外部脚本文件 -->
-    <script src="./assets/js/main.js"></script>
+    <script src="./assets/main.js"></script>
 </body>
 </html>
