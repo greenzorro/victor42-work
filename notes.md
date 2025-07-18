@@ -15,28 +15,31 @@
 - **HTML5**: 页面结构，语义化标签，静态视频元素
 - **CSS3**: 响应式布局、CSS Grid、CSS自定义属性（变量）
 - **JavaScript (ES6 Async/Await)**: 数据加载、DOM操作、主题切换、视频控制
-- **JSON**: 存储页面标题、描述、产品数据和个人信息
+- **YAML**: 存储页面标题、描述、产品数据和个人信息
+- **js-yaml**: 用于解析YAML数据的前端库
 - **LocalStorage**: 保存用户主题偏好
 - **CSS Variables**: 实现深色/浅色模式的动态主题切换
 - **HTML5 Video**: 深色模式背景视频播放（MP4格式）
 
 ### 2.2 文件结构
 
-- `index.html`: 主页面文件。
-- `assets/css/style.css`: 页面主要样式定义。
-- `assets/js/main.js`: 页面主要逻辑，负责数据加载和渲染。
-- `data/products.json`: 存储所有动态内容的JSON数据文件。
-- `README.md`: 项目说明。
-- `LICENSE`: 项目许可证。
-- `notes.md`: 本备忘录。
+- `index.html`: 主页面文件
+- `data.yaml`: 存储所有动态内容的YAML数据文件
+- `assets/style.css`: 页面主要样式定义
+- `assets/main.js`: 页面主要逻辑脚本
+- `README.md`: 项目说明
+- `LICENSE`: 项目许可证
+- `notes.md`: 本备忘录
+- `robots.txt`: 爬虫指引文件
+- `sitemap.xml`: SEO网站地图
 
 ## 3. 功能模块与实现
 
 ### 3.1 数据驱动渲染
 
-- **`data/products.json`**: 是唯一的数据源，定义了页面标题、描述、个人信息（头像、简介、网站链接）以及一个产品对象数组。
+- **`data.yaml`**: 是唯一的数据源，定义了页面标题、描述、个人信息（头像、简介、网站链接）以及一个产品对象数组。
 - **主要功能函数**:
-    - **`loadProducts()`**: 异步获取 `products.json` 数据
+    - **`loadProducts()`**: 异步获取 `data.yaml` 数据，并使用 `js-yaml` 库解析
     - **`renderPage(data)`**: 渲染整个页面，包括标题、描述、版权信息
     - **`renderProfile()`**: 渲染个人信息区域
     - **`createProductCard()`**: 动态创建产品卡片
@@ -105,30 +108,23 @@
 - **资源管理**: 主题切换时简单的播放/暂停控制，避免元素创建销毁
 - **预加载策略**: 关键资源（CSS、JS、JSON）预加载，DNS预解析CDN域名
 
-## 4. 数据结构 (`data.json`)
+## 4. 数据结构 (`data.yaml`)
 
-```json
-{
-  "title": "页面主标题",
-  "description": "页面的描述信息",
-  "profile": {
-    "avatar": "个人头像URL",
-    "bio": "个人简介，支持HTML标签如<br>",
-    "website": {
-      "title": "个人网站链接的显示文字",
-      "url": "个人网站的完整URL"
-    }
-  },
-  "products": [
-    {
-      "emoji": "产品的Emoji图标",
-      "name": "产品名称",
-      "url": "产品链接URL",
-      "description": "产品简介",
-      "image": "产品封面图URL (可选)"
-    }
-  ]
-}
+```yaml
+title: "页面主标题"
+description: "页面的描述信息"
+profile:
+  avatar: "个人头像URL"
+  bio: "个人简介，支持HTML标签如<br>"
+  website:
+    title: "个人网站链接的显示文字"
+    url: "个人网站的完整URL"
+products:
+  - emoji: "产品的Emoji图标"
+    name: "产品名称"
+    url: "产品链接URL"
+    description: "产品简介"
+    image: "产品封面图URL (可选)"
 ```
 
 ## 5. SEO优化

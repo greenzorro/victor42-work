@@ -18,10 +18,10 @@
 
 /* 深色模式变量 */
 [data-theme="dark"] {
-    --color-text: #e4e6ea;
+    --color-text: #d0d3d6;
     --color-text-secondary: #b0b3b8;
     --color-text-muted: #8a8d91;
-    --color-text-heading: #ffffff;
+    --color-text-heading: #e0e0e0;
     --color-background: #18191a;
     --color-card-background: rgba(36, 37, 38, 0.4);
     --color-card-shadow: rgba(0,0,0,0.3);
@@ -125,6 +125,11 @@ a:hover {
 
 [data-theme="dark"] .product-card:hover {
     border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* 深色模式下大卡片图片亮度调整 */
+[data-theme="dark"] .large-card .product-image img {
+    filter: brightness(0.8);
 }
 
 
