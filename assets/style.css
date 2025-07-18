@@ -218,7 +218,7 @@ a:hover {
 
 /* 描述卡片 */
 .description-card {
-    background: url('https://cdn.victor42.work/products/tools.webp') no-repeat center center;
+    background: url('images/tools.webp') no-repeat center center;
     background-size: cover;
     color: white;
     border-radius: 16px;
