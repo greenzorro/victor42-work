@@ -34,13 +34,12 @@ async function loadProducts() {
     } catch (error) {
         console.error('Could not load products:', error);
         // 显示错误信息
-        const productsContainer = document.getElementById('products-container');
-        productsContainer.innerHTML = '<p class="error-message">加载作品失败，请稍后重试。</p>';
+        document.getElementById('error').style.display = 'block';
     } finally {
         // 隐藏加载动画
-        const loader = document.getElementById('loader');
-        if (loader) {
-            loader.style.display = 'none';
+        const loading = document.getElementById('loading');
+        if (loading) {
+            loading.style.display = 'none';
         }
     }
 }
