@@ -1,3 +1,12 @@
+/*
+ * File: main.js
+ * Project: assets
+ * Created: 2025-07-16 08:05:41
+ * Author: Victor Cheng
+ * Email: greenzorromail@gmail.com
+ * Description: 
+ */
+
 /**
  * Victor42 创造营地 - 小玩意工具集合
  * 主要功能脚本
@@ -12,17 +21,27 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // 加载产品数据
+// 异步加载所有产品
 async function loadProducts() {
     try {
-        const response = await fetch('./data.json');
+        const response = await fetch('data.yaml'); // Change to .yaml
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const data = await response.json();
+        const yamlText = await response.text(); // Get text instead of json
+        const data = jsyaml.load(yamlText); // Parse YAML
         renderPage(data);
     } catch (error) {
-        console.error('Failed to load products:', error);
-        showError();
+        console.error('Could not load products:', error);
+        // 显示错误信息
+        const productsContainer = document.getElementById('products-container');
+        productsContainer.innerHTML = '<p class="error-message">加载作品失败，请稍后重试。</p>';
+    } finally {
+        // 隐藏加载动画
+        const loader = document.getElementById('loader');
+        if (loader) {
+            loader.style.display = 'none';
+        }
     }
 }
 
@@ -102,11 +121,7 @@ function createProductCard(product, cardSize) {
     return card;
 }
 
-// 显示错误信息
-function showError() {
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('error').style.display = 'block';
-}
+
 
 // 更新主题图标状态（主题已在head中设置）
 function updateThemeIcon() {
@@ -194,4 +209,4 @@ function initializeBackgroundVideo() {
             });
         }
     }
-} 
+}
