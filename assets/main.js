@@ -190,6 +190,9 @@ function initializeBackgroundVideo() {
     const isDarkMode = html.getAttribute('data-theme') === 'dark';
     
     if (backgroundVideo) {
+        // 触发浏览器自动选择最佳视频格式
+        backgroundVideo.load();
+        
         // 优化的事件监听
         backgroundVideo.addEventListener('error', function() {
             console.log('背景视频加载失败，使用纯色背景');
