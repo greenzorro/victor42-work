@@ -149,6 +149,43 @@
 - `sitemap.xml`: 网站地图
 - `robots.txt`: 爬虫指引文件
 
+### 5.3 Sitemap维护规则
+
+**重要提示：** 每当在 `data.json` 中新增产品时，必须检查是否需要更新 `sitemap.xml`。
+
+#### 添加标准：
+1. **必须添加** - 属于 `victor42.work` 子域名的产品：
+   - 格式：`*.*.victor42.work` 或 `*.victor42.work`
+   - 优先级：`0.8`（与现有工具同级）
+   - 更新频率：`monthly`
+
+2. **建议添加** - 重要的 GitHub 项目页面：
+   - 核心工具类项目（ComfyUI工作流、Excel+PS批处理等）
+   - 优先级：`0.7`
+   - 更新频率：`monthly`
+
+3. **不要添加** - 第三方平台页面：
+   - GreasyFork脚本页面
+   - 飞书文档、Notion页面
+   - 其他平台的外部链接
+
+#### 添加格式：
+```xml
+<url>
+  <loc>https://your-product.victor42.work/</loc>
+  <lastmod>当前日期</lastmod>
+  <changefreq>monthly</changefreq>
+  <priority>0.8</priority>
+</url>
+```
+
+#### 更新流程：
+1. 在 `data.json` 中添加新产品
+2. 检查产品URL是否符合上述标准
+3. 如符合，在 `sitemap.xml` 中添加对应条目
+4. 更新所有条目的 `<lastmod>` 为当前日期
+5. 保持优先级层次结构的一致性
+
 ## 6. 故障排查
 
 - **基础检查**: 确保文件路径正确、JSON数据格式有效
