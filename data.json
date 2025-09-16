@@ -46,18 +46,6 @@
       "image": "../assets/images/UI%E7%94%BB%E5%B8%83%E5%B0%BA%E5%AF%B8%E8%AE%A1%E7%AE%97%E5%99%A8.webp"
     },
     {
-      "emoji": "📊",
-      "name": "Excel模板",
-      "url": "https://qvokpfxqsh.feishu.cn/wiki/G8OywdlWji0H31kJ0KwciaJ8nAd",
-      "description": "自制一些Excel模板，用于计算出门时间、医院排队、家庭现金流等，会持续补充新品。毕竟，我可是Excel狂魔啊。"
-    },
-    {
-      "emoji": "🖥️",
-      "name": "PPT模板",
-      "url": "https://qvokpfxqsh.feishu.cn/file/IhvqbC6rMounB6xBIUyc3Fvqntc",
-      "description": "自制自用的PPT模板，包含深浅两色。虽然不能拿去开发布会，但好在结构清晰布局丰富，日常内部分享、汇报是够够的了。"
-    },
-    {
       "emoji": "🔮",
       "name": "ComfyUI 万能工作流",
       "url": "https://github.com/greenzorro/comfyui-workflow-versatile",
@@ -68,6 +56,18 @@
       "name": "ComfyUI upscale 工作流",
       "url": "https://github.com/greenzorro/comfyui-workflow-upscaler",
       "description": "能把小图高清放大的ComfyUI工作流，利用AI想象出模糊图像中的缺失细节。"
+    },
+    {
+      "emoji": "📊",
+      "name": "Excel模板",
+      "url": "https://qvokpfxqsh.feishu.cn/wiki/G8OywdlWji0H31kJ0KwciaJ8nAd",
+      "description": "自制一些Excel模板，用于计算出门时间、医院排队、家庭现金流等，会持续补充新品。毕竟，我可是Excel狂魔啊。"
+    },
+    {
+      "emoji": "🖥️",
+      "name": "PPT模板",
+      "url": "https://qvokpfxqsh.feishu.cn/file/IhvqbC6rMounB6xBIUyc3Fvqntc",
+      "description": "自制自用的PPT模板，包含深浅两色。虽然不能拿去开发布会，但好在结构清晰布局丰富，日常内部分享、汇报是够够的了。"
     },
     {
       "emoji": "🐐",
