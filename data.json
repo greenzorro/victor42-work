@@ -39,6 +39,13 @@
       "image": "../assets/images/%E8%BF%9D%E7%A6%81%E8%AF%8D%E6%9B%BF%E6%8D%A2%E5%B7%A5%E5%85%B7.webp"
     },
     {
+      "emoji": "📐",
+      "name": "UI画布尺寸计算器",
+      "url": "https://ui-size.victor42.work/",
+      "description": "面对陌生的设备，帮你解决“画布该设成多大”的问题。",
+      "image": "../assets/images/UI%E7%94%BB%E5%B8%83%E5%B0%BA%E5%AF%B8%E8%AE%A1%E7%AE%97%E5%99%A8.webp"
+    },
+    {
       "emoji": "📊",
       "name": "Excel模板",
       "url": "https://qvokpfxqsh.feishu.cn/wiki/G8OywdlWji0H31kJ0KwciaJ8nAd",
@@ -61,13 +68,6 @@
       "name": "ComfyUI upscale 工作流",
       "url": "https://github.com/greenzorro/comfyui-workflow-upscaler",
       "description": "能把小图高清放大的ComfyUI工作流，利用AI想象出模糊图像中的缺失细节。"
-    },
-    {
-      "emoji": "📐",
-      "name": "UI画布尺寸计算器",
-      "url": "https://ui-size.victor42.work/",
-      "description": "面对陌生的设备，帮你解决“画布该设成多大”的问题。",
-      "image": "../assets/images/UI%E7%94%BB%E5%B8%83%E5%B0%BA%E5%AF%B8%E8%AE%A1%E7%AE%97%E5%99%A8.webp"
     },
     {
       "emoji": "🐐",
