@@ -106,12 +106,6 @@
       "description": "自己制作的交互组件库，Sketch格式，包含移动端常见的各种设计模式。几分钟便能搭出一套App或小程序的核心界面，偷懒利器。"
     },
     {
-      "emoji": "⤵️",
-      "name": "ColaUX流程图模板",
-      "url": "https://github.com/greenzorro/ColaUX-OmnigraffleStencil",
-      "description": "画交互流程图，用Omnigraffle是非常方便的。制作了一套Stencil自用，可以方便绘制业务流程图和页面流程图，而且还包含泳道图组件。"
-    },
-    {
       "emoji": "🎛️",
       "name": "十/十六进制颜色值转换工具",
       "url": "http://greenzorro.github.io/hex-dec-color-transform",
@@ -128,12 +122,6 @@
       "name": "markdown转HTML",
       "url": "http://greenzorro.github.io/markdown-to-something",
       "description": "markdown这么好用，写过一次就停不下来。所以希望能轻松把markdown转成各种不同形式，用在不同地方，甚至包括一些老古董编辑器。"
-    },
-    {
-      "emoji": "🏠",
-      "name": "可乐橙博客模版",
-      "url": "https://github.com/greenzorro/bitcron-colachan",
-      "description": "我以前的博客是基于Bitcron打造的，很喜欢这个博客系统，简洁轻盈。代码已经在Github上开源，其中也包含设计文件。"
     },
     {
       "emoji": "🧮",
