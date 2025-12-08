@@ -58,6 +58,18 @@
       "description": "自制自用的PPT模板，包含深浅两色。虽然不能拿去开发布会，但好在结构清晰布局丰富，日常内部分享、汇报是够够的了。"
     },
     {
+      "emoji": "🏭",
+      "name": "Excel+PS批量自动出图",
+      "url": "https://github.com/greenzorro/excel-ps-batch-export",
+      "description": "结合Excel的数据处理能力和PS灵活的图片编辑，用Python作为桥梁，从Excel取内容，填到PS的模板文件里，快速全自动生成大量图片。"
+    },
+    {
+      "emoji": "🛠️",
+      "name": "私藏软件集与一键安装系统",
+      "url": "https://github.com/greenzorro/my-handy-tools",
+      "description": "像技术人员一样装软件。拿到新电脑，打开黑漆漆的命令行，一行命令，回车，自用软件库就咔咔装好了。可自主维护和自动生成软件清单，作为长期资产。"
+    },
+    {
       "emoji": "🔮",
       "name": "ComfyUI 万能工作流",
       "url": "https://github.com/greenzorro/comfyui-workflow-versatile",
@@ -74,12 +86,6 @@
       "name": "瓴羊刷题助手",
       "url": "https://greasyfork.org/en/scripts/522657-%E7%93%B4%E7%BE%8A%E5%88%B7%E9%A2%98%E5%8A%A9%E6%89%8B",
       "description": "在瓴羊认证考个证，发现它模拟考只保留最近5次考试记录。做了个脚本，考完可以把全部答题记录导出成表格，便于分析错题和制作错题集。"
-    },
-    {
-      "emoji": "🏭",
-      "name": "Excel+PS批量自动出图",
-      "url": "https://github.com/greenzorro/excel-ps-batch-export",
-      "description": "结合Excel的数据处理能力和PS灵活的图片编辑，用Python作为桥梁，从Excel取内容，填到PS的模板文件里，快速全自动生成大量图片。"
     },
     {
       "emoji": "📖",
