@@ -65,16 +65,28 @@
       "description": "自制自用的PPT模板，包含深浅两色。虽然不能拿去开发布会，但好在结构清晰布局丰富，日常内部分享、汇报是够够的了。"
     },
     {
-      "emoji": "🏭",
-      "name": "Excel+PS批量自动出图",
-      "url": "https://github.com/greenzorro/excel-ps-batch-export",
-      "description": "结合Excel的数据处理能力和PS灵活的图片编辑，用Python作为桥梁，从Excel取内容，填到PS的模板文件里，快速全自动生成大量图片。"
+      "emoji": "📜",
+      "name": "Google Apps Script工具集",
+      "url": "https://github.com/greenzorro/google-apps-scripts",
+      "description": "自用的Google Apps Script工具集：日历监控、邮件归档、文件清理、表格操作等，还附带一套完整的RSS每日新闻采集和AI总结系统。"
     },
     {
       "emoji": "🛠️",
       "name": "自用软件一键安装系统",
       "url": "https://github.com/greenzorro/my-handy-tools",
       "description": "像技术人员一样装软件。拿到新电脑，打开黑漆漆的命令行，一行命令，回车，自用软件库就咔咔装好了。可自主维护和自动生成软件清单，作为长期资产。"
+    },
+    {
+      "emoji": "🏭",
+      "name": "Excel+PS批量自动出图",
+      "url": "https://github.com/greenzorro/excel-ps-batch-export",
+      "description": "结合Excel的数据处理能力和PS灵活的图片编辑，用Python作为桥梁，从Excel取内容，填到PS的模板文件里，快速全自动生成大量图片。"
+    },
+    {
+      "emoji": "📦",
+      "name": "浏览器脚本一键打包成插件",
+      "url": "https://github.com/greenzorro/browser-script-to-extension",
+      "description": "把浏览器脚本打包成浏览器扩展，充分利用应用市场的分发能力，让脚本安装和使用更方便。"
     },
     {
       "emoji": "🔮",
