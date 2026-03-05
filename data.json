@@ -18,6 +18,13 @@
       "image": "../assets/images/%E5%B0%8F%E7%86%8A%E6%AD%8C%E5%8D%95%E6%90%AC%E5%AE%B6.webp"
     },
     {
+      "emoji": "🏨",
+      "name": "酒店对比助手",
+      "url": "https://github.com/greenzorro/hotel-comparer",
+      "description": "提取携程酒店详情页信息，支持多酒店对比，一键导出 Excel。",
+      "image": "../assets/images/%E9%85%92%E5%BA%97%E5%AF%B9%E6%AF%94%E5%8A%A9%E6%89%8B.webp"
+    },
+    {
       "emoji": "🌖",
       "name": "Agent 记忆系统",
       "url": "https://github.com/agent-vik/about-me",
@@ -28,7 +35,7 @@
       "emoji": "📄",
       "name": "谷歌 AI Studio 助手",
       "url": "https://github.com/greenzorro/ai-studio-easy-use",
-      "description": "自动设置Google AI Studio的系统提示词，新对话自动填入，外加快捷键和字号大小设置。",
+      "description": "自动设置 Google AI Studio 的系统提示词，新对话自动填入，外加快捷键和字号大小设置。",
       "image": "../assets/images/Google%20Al%20Studio%20Easy%20Use.webp"
     },
     {
@@ -75,7 +82,7 @@
       "emoji": "📜",
       "name": "Google Apps Script工具集",
       "url": "https://github.com/greenzorro/google-apps-scripts",
-      "description": "自用的Google Apps Script工具集：日历监控、邮件归档、文件清理、表格操作等，还附带一套完整的RSS每日新闻采集和AI总结系统。"
+      "description": "自用的 Google Apps Script 工具集：日历监控、邮件归档、文件清理、表格操作等，还附带一套完整的RSS每日新闻采集和AI总结系统。"
     },
     {
       "emoji": "🛠️",
