@@ -18,6 +18,13 @@
       "image": "../assets/images/%E5%B0%8F%E7%86%8A%E6%AD%8C%E5%8D%95%E6%90%AC%E5%AE%B6.webp"
     },
     {
+      "emoji": "🌖",
+      "name": "Agent 记忆系统",
+      "url": "https://github.com/agent-vik/about-me",
+      "description": "独立的可插拔式记忆系统，能在 Claude Code/Manus/Minimax/Jules 等多种 Agent 产品中加载，谁加载，谁就变成它。",
+      "image": "../assets/images/Agent%E8%AE%B0%E5%BF%86%E7%B3%BB%E7%BB%9F.webp"
+    },
+    {
       "emoji": "📄",
       "name": "谷歌 AI Studio 助手",
       "url": "https://github.com/greenzorro/ai-studio-easy-use",
