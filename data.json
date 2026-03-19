@@ -79,6 +79,12 @@
       "description": "自制自用的PPT模板，包含深浅两色。虽然不能拿去开发布会，但好在结构清晰布局丰富，日常内部分享、汇报是够够的了。"
     },
     {
+      "emoji": "🔌",
+      "name": "全球电源插座指南",
+      "url": "https://world-plugs.victor42.work/",
+      "description": "出国旅行规划过程中，了解到了世界各地插座的不同标准，顺手做了个科普网站，方便有国际旅行计划的朋友参考。"
+    },
+    {
       "emoji": "📜",
       "name": "Google Apps Script工具集",
       "url": "https://github.com/greenzorro/google-apps-scripts",
