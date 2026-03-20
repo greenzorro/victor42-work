@@ -1,190 +1,308 @@
 {
-  "title": "Victor42",
-  "description": "Victor42的小玩意：我工作与生活中遇会遇到一些问题，有时自己动手做个工具就能满足需求，或许这些小玩意你也用得上。",
+  "title": {
+    "zh": "Victor42",
+    "en": "Victor42"
+  },
+  "description": {
+    "zh": "Victor42的小玩意：我工作与生活中遇会遇到一些问题，有时自己动手做个工具就能满足需求，或许这些小玩意你也用得上。",
+    "en": "Victor42's Gadgets: Tools I've built to solve real-world problems. Maybe you'll find them handy too."
+  },
   "profile": {
     "avatar": "../assets/images/pale-blue-dot.jpg",
-    "bio": "科学、纪录片、博物馆爱好者；Excel狂魔；蹩脚开发者；UI/UX设计师；生活观察者<br>Science/documentary/museum enthusiast, Excel weirdo, Underdog developer, UI/UX designer, Life witness",
+    "bio": {
+      "zh": "科学、纪录片、博物馆爱好者；Excel狂魔；蹩脚开发者；UI/UX设计师；生活观察者",
+      "en": "Science/documentary/museum enthusiast, Excel weirdo, Underdog developer, UI/UX designer, Life witness"
+    },
     "website": {
-      "title": "个人博客",
+      "title": {
+        "zh": "个人博客",
+        "en": "Personal Blog"
+      },
       "url": "https://victor42.eth.limo/"
     }
   },
   "products": [
     {
       "emoji": "🎵",
-      "name": "小熊歌单搬家",
+      "name": {
+        "zh": "小熊歌单搬家",
+        "en": "Bear Playlist Migrator"
+      },
       "url": "https://playlist.victor42.work/",
-      "description": "一款浏览器插件，轻松迁移歌单，在主流音乐平台间来去自如。",
+      "description": {
+        "zh": "一款浏览器插件，轻松迁移歌单，在主流音乐平台间来去自如。",
+        "en": "A browser extension for hassle-free playlist migration across all major music streaming platforms."
+      },
       "image": "../assets/images/%E5%B0%8F%E7%86%8A%E6%AD%8C%E5%8D%95%E6%90%AC%E5%AE%B6.webp"
     },
     {
       "emoji": "🏨",
-      "name": "酒店对比助手",
+      "name": {
+        "zh": "酒店对比助手",
+        "en": "Hotel Comparison Pro"
+      },
       "url": "https://github.com/greenzorro/hotel-comparer",
-      "description": "提取携程酒店详情页信息，支持多酒店对比，一键导出 Excel。",
+      "description": {
+        "zh": "提取携程酒店详情页信息，支持多酒店对比，一键导出 Excel。",
+        "en": "Extract Ctrip hotel data for side-by-side comparison and export to Excel with a single click."
+      },
       "image": "../assets/images/%E9%85%92%E5%BA%97%E5%AF%B9%E6%AF%94%E5%8A%A9%E6%89%8B.webp"
     },
     {
       "emoji": "🌖",
-      "name": "Agent 记忆系统",
+      "name": {
+        "zh": "Agent 记忆系统",
+        "en": "Agent Memory System"
+      },
       "url": "https://github.com/agent-vik/about-me",
-      "description": "独立的可插拔式记忆系统，能在 Claude Code/Manus/Minimax/Jules 等多种 Agent 产品中加载，谁加载，谁就变成它。",
+      "description": {
+        "zh": "独立的可插拔式记忆系统，能在 Claude Code/Manus/Minimax/Jules 等多种 Agent 产品中加载，谁加载，谁就变成它。",
+        "en": "A pluggable memory system for AI Agents. Whoever loads it, inherits its identity and context."
+      },
       "image": "../assets/images/Agent%E8%AE%B0%E5%BF%86%E7%B3%BB%E7%BB%9F.webp"
     },
     {
       "emoji": "📄",
-      "name": "谷歌 AI Studio 助手",
+      "name": {
+        "zh": "谷歌 AI Studio 助手",
+        "en": "Google AI Studio Powerpack"
+      },
       "url": "https://github.com/greenzorro/ai-studio-easy-use",
-      "description": "自动设置 Google AI Studio 的系统提示词，新对话自动填入，外加快捷键和字号大小设置。",
+      "description": {
+        "zh": "自动设置 Google AI Studio 的系统提示词，新对话自动填入，外加快捷键和字号大小设置。",
+        "en": "Power up Google AI Studio with persistent system prompts, auto-fill for new chats, custom shortcuts, and adjustable font sizes."
+      },
       "image": "../assets/images/Google%20Al%20Studio%20Easy%20Use.webp"
     },
     {
       "emoji": "📚",
-      "name": "NotebookLM 助手",
+      "name": {
+        "zh": "NotebookLM 助手",
+        "en": "NotebookLM Sync Pro"
+      },
       "url": "https://github.com/greenzorro/notebooklm-easy-use",
-      "description": "自动批量更新 NotebookLM 中的 Google Drive 资料，一键同步所有 Docs/Sheets/Slides 最新内容。",
+      "description": {
+        "zh": "自动批量更新 NotebookLM 中的 Google Drive 资料，一键同步所有 Docs/Sheets/Slides 最新内容。",
+        "en": "Keep NotebookLM in sync with Google Drive. Batch-update your Docs, Sheets, and Slides with a single click."
+      },
       "image": "../assets/images/NotebookLM%20Easy%20Use.webp"
     },
     {
       "emoji": "🎨",
-      "name": "自动化AI插画生成系统",
+      "name": {
+        "zh": "自动化AI插画生成系统",
+        "en": "AI Illustration Automation Guide"
+      },
       "url": "https://qvokpfxqsh.feishu.cn/wiki/KJMgwMn0wiXeiqkFvHHcHFxAn8B?from=from_copylink",
-      "description": "一份详细的AI插画批量生成手册，包含模型训练、ComfyUI工作流、多维表、Python代码、Photoshop改图技巧等。",
+      "description": {
+        "zh": "一份详细的AI插画批量生成手册，包含模型训练、ComfyUI工作流、多维表、Python代码、Photoshop改图技巧等。",
+        "en": "A deep-dive manual for batch AI illustration, covering model training, ComfyUI workflows, Python automation, and Photoshop retouching."
+      },
       "image": "../assets/images/%E8%87%AA%E5%8A%A8%E5%8C%96AI%E6%8F%92%E7%94%BB%E7%94%9F%E6%88%90%E7%B3%BB%E7%BB%9F.webp"
     },
     {
-      "emoji": "🚫",
-      "name": "违禁词替换工具",
-      "url": "http://phrase-replacer.victor42.work/",
-      "description": "社交媒体发布利器，智能替换文本中的违禁词，避免限流。",
-      "image": "../assets/images/%E8%BF%9D%E7%A6%81%E8%AF%8D%E6%9B%BF%E6%8D%A2%E5%B7%A5%E5%85%B7.webp"
-    },
-    {
-      "emoji": "📐",
-      "name": "UI画布尺寸计算器",
-      "url": "https://ui-size.victor42.work/",
-      "description": "面对陌生的设备，帮你解决“画布该设成多大”的问题。",
-      "image": "../assets/images/UI%E7%94%BB%E5%B8%83%E5%B0%BA%E5%AF%B8%E8%AE%A1%E7%AE%97%E5%99%A8.webp"
-    },
-    {
       "emoji": "📊",
-      "name": "Excel模板",
+      "name": {
+        "zh": "Excel模板",
+        "en": "Excel Life Toolkits"
+      },
       "url": "https://qvokpfxqsh.feishu.cn/wiki/G8OywdlWji0H31kJ0KwciaJ8nAd",
-      "description": "自制一些Excel模板，用于计算出门时间、医院排队、家庭现金流等，会持续补充新品。毕竟，我可是Excel狂魔啊。"
+      "description": {
+        "zh": "自制一些Excel模板，用于计算出门时间、医院排队、家庭现金流等，会持续补充新品。毕竟，我可是Excel狂魔啊。",
+        "en": "A collection of Excel templates for life's logistics—departure times, hospital queues, and family finance. More coming soon from an unrepentant Excel nerd."
+      }
     },
     {
       "emoji": "🖥️",
-      "name": "PPT模板",
+      "name": {
+        "zh": "PPT模板",
+        "en": "PPT Layout Library"
+      },
       "url": "https://qvokpfxqsh.feishu.cn/file/IhvqbC6rMounB6xBIUyc3Fvqntc",
-      "description": "自制自用的PPT模板，包含深浅两色。虽然不能拿去开发布会，但好在结构清晰布局丰富，日常内部分享、汇报是够够的了。"
+      "description": {
+        "zh": "自制自用的PPT模板，包含深浅两色。虽然不能拿去开发布会，但好在结构清晰布局丰富，日常内部分享、汇报是够够的了。",
+        "en": "Personal PPT templates in light and dark modes. Structured and versatile layouts designed for clear internal reporting and sharing."
+      }
+    },
+    {
+      "emoji": "🚫",
+      "name": {
+        "zh": "违禁词替换工具",
+        "en": "Social Media Banned Word Swapper"
+      },
+      "url": "http://phrase-replacer.victor42.work/",
+      "description": {
+        "zh": "社交媒体发布利器，智能替换文本中的违禁词，避免限流。",
+        "en": "The ultimate social media wingman. Intelligently swaps out 'sensitive' words to keep your posts from being shadowbanned."
+      }
+    },
+    {
+      "emoji": "📐",
+      "name": {
+        "zh": "UI画布尺寸计算器",
+        "en": "UI Canvas Dimensions Calculator"
+      },
+      "url": "https://ui-size.victor42.work/",
+      "description": {
+        "zh": "面对陌生的设备，帮你解决\"画布该设成多大\"的问题。",
+        "en": "Stop guessing canvas sizes for new devices. Get the right UI dimensions instantly."
+      }
     },
     {
       "emoji": "🔌",
-      "name": "全球电源插座指南",
+      "name": {
+        "zh": "全球电源插座指南",
+        "en": "Global Power Plug Directory"
+      },
       "url": "https://world-plugs.victor42.work/",
-      "description": "出国旅行规划过程中，了解到了世界各地插座的不同标准，顺手做了个科普网站，方便有国际旅行计划的朋友参考。"
+      "description": {
+        "zh": "出国旅行规划过程中，了解到了世界各地插座的不同标准，顺手做了个科普网站，方便有国际旅行计划的朋友参考。",
+        "en": "An accidental expert's guide to global power standards. Built while planning a trip to help fellow world travelers."
+      }
     },
     {
       "emoji": "📜",
-      "name": "Google Apps Script工具集",
+      "name": {
+        "zh": "Google Apps Script工具集",
+        "en": "Google Apps Script Powerpack"
+      },
       "url": "https://github.com/greenzorro/google-apps-scripts",
-      "description": "自用的 Google Apps Script 工具集：日历监控、邮件归档、文件清理、表格操作等，还附带一套完整的RSS每日新闻采集和AI总结系统。"
+      "description": {
+        "zh": "自用的 Google Apps Script 工具集：日历监控、邮件归档、文件清理、表格操作等，还附带一套完整的RSS每日新闻采集和AI总结系统。",
+        "en": "My Swiss Army knife for Google Apps Script: automates calendar, email, and files, plus an AI-powered RSS news digest."
+      }
     },
     {
       "emoji": "🛠️",
-      "name": "自用软件一键安装系统",
+      "name": {
+        "zh": "自用软件一键安装系统",
+        "en": "One-Command App Installer"
+      },
       "url": "https://github.com/greenzorro/my-handy-tools",
-      "description": "像技术人员一样装软件。拿到新电脑，打开黑漆漆的命令行，一行命令，回车，自用软件库就咔咔装好了。可自主维护和自动生成软件清单，作为长期资产。"
+      "description": {
+        "zh": "像技术人员一样装软件。拿到新电脑，打开黑漆漆的命令行，一行命令，回车，自用软件库就咔咔装好了。可自主维护和自动生成软件清单，作为长期资产。",
+        "en": "Setup your new machine like a pro. A single command installs your entire software stack automatically. Fully maintainable as a long-term asset."
+      }
     },
     {
       "emoji": "🏭",
-      "name": "Excel+PS批量自动出图",
+      "name": {
+        "zh": "Excel+PS批量自动出图",
+        "en": "Excel-to-PS Batch Renderer"
+      },
       "url": "https://github.com/greenzorro/excel-ps-batch-export",
-      "description": "结合Excel的数据处理能力和PS灵活的图片编辑，用Python作为桥梁，从Excel取内容，填到PS的模板文件里，快速全自动生成大量图片。"
+      "description": {
+        "zh": "结合Excel的数据处理能力和PS灵活的图片编辑，用Python作为桥梁，从Excel取内容，填到PS的模板文件里，快速全自动生成大量图片。",
+        "en": "Automate image production by bridging Excel and Photoshop. Uses Python to pump data into PS templates for high-speed batch exports."
+      }
     },
     {
       "emoji": "📦",
-      "name": "浏览器脚本一键打包成插件",
+      "name": {
+        "zh": "浏览器脚本一键打包成插件",
+        "en": "Userscript-to-Extension Packager"
+      },
       "url": "https://github.com/greenzorro/browser-script-to-extension",
-      "description": "把浏览器脚本打包成浏览器扩展，充分利用应用市场的分发能力，让脚本安装和使用更方便。"
+      "description": {
+        "zh": "把浏览器脚本打包成浏览器扩展，充分利用应用市场的分发能力，让脚本安装和使用更方便。",
+        "en": "Turn your userscripts into full browser extensions. Leverage the web store for seamless distribution and easier updates."
+      }
     },
     {
       "emoji": "🔮",
-      "name": "ComfyUI 万能工作流",
+      "name": {
+        "zh": "ComfyUI 万能工作流",
+        "en": "ComfyUI Ultimate Workflow"
+      },
       "url": "https://github.com/greenzorro/comfyui-workflow-versatile",
-      "description": "自制的ComfyUI工作流，日常工作首选，文生图、图像混合、风格迁移、风格探索、局部重绘、扩图、重新打光都能胜任。"
+      "description": {
+        "zh": "自制的ComfyUI工作流，日常工作首选，文生图、图像混合、风格迁移、风格探索、局部重绘、扩图、重新打光都能胜任。",
+        "en": "My daily-driver ComfyUI workflow. A versatile Swiss Army knife for text-to-image, style exploration, inpainting, and relighting."
+      }
     },
     {
       "emoji": "🔍",
-      "name": "ComfyUI upscale 工作流",
+      "name": {
+        "zh": "ComfyUI upscale 工作流",
+        "en": "ComfyUI HD Upscaler"
+      },
       "url": "https://github.com/greenzorro/comfyui-workflow-upscaler",
-      "description": "能把小图高清放大的ComfyUI工作流，利用AI想象出模糊图像中的缺失细节。"
+      "description": {
+        "zh": "能把小图高清放大的ComfyUI工作流，利用AI想象出模糊图像中的缺失细节。",
+        "en": "High-fidelity upscaling in ComfyUI. Leverages AI to 'hallucinate' crisp details back into low-res or blurry images."
+      }
     },
     {
       "emoji": "🐐",
-      "name": "瓴羊刷题助手",
+      "name": {
+        "zh": "瓴羊刷题助手",
+        "en": "Lingyang Exam Helper"
+      },
       "url": "https://greasyfork.org/en/scripts/522657-%E7%93%B4%E7%BE%8A%E5%88%B7%E9%A2%98%E5%8A%A9%E6%89%8B",
-      "description": "在瓴羊认证考个证，发现它模拟考只保留最近5次考试记录。做了个脚本，考完可以把全部答题记录导出成表格，便于分析错题和制作错题集。"
+      "description": {
+        "zh": "在瓴羊认证考个证，发现它模拟考只保留最近5次考试记录。做了个脚本，考完可以把全部答题记录导出成表格，便于分析错题和制作错题集。",
+        "en": "Hack your way to certification. Lingyang's mock exams only show the last 5 attempts, so I built a script to export your full history for deep error analysis."
+      }
     },
     {
       "emoji": "📖",
-      "name": "PS单页转骑马钉脚本",
+      "name": {
+        "zh": "PS单页转骑马钉脚本",
+        "en": "PS Saddle Stitch Automator"
+      },
       "url": "https://github.com/greenzorro/saddle-stitch-helper",
-      "description": "可以把独立设计的一系列单页转成骑马钉双页。它能找到对应的每两张单页，按印刷所需顺序拼合起来。并可以方便地进一步转成单个PDF文件。"
-    },
-    {
-      "emoji": "✂️",
-      "name": "PS图片处理脚本",
-      "url": "https://github.com/greenzorro/image-unifier",
-      "description": "经常有这种情况，要把许多横的、竖的、尺寸不同的图片统一处理。自制了一些脚本，可以处理到同一个尺寸，或限定最大宽或高。"
+      "description": {
+        "zh": "可以把独立设计的一系列单页转成骑马钉双页。它能找到对应的每两张单页，按印刷所需顺序拼合起来。并可以方便地进一步转成单个PDF文件。",
+        "en": "Prep for print with ease. Automatically reorders single pages into saddle-stitched pairs, ready for double-sided printing and PDF export."
+      }
     },
     {
       "emoji": "📝",
-      "name": "PS图层批量重命名脚本",
+      "name": {
+        "zh": "PS图层批量重命名脚本",
+        "en": "PS Batch Artboard Renamer"
+      },
       "url": "https://qvokpfxqsh.feishu.cn/file/Y3fdbzHMloHMBuxUVV4cl7CJnrO",
-      "description": "PS经常用于批量制作banner图，结合画板和生成图像资源功能，效率奇高。这就需要按顺序给大量画板重命名。自己写了个PS脚本，一键搞定。"
-    },
-    {
-      "emoji": "📱",
-      "name": "移动端交互组件库",
-      "url": "https://qvokpfxqsh.feishu.cn/file/IowubwVTAoXMF2xGWkDcvCsKn5e",
-      "description": "自己制作的交互组件库，Sketch格式，包含移动端常见的各种设计模式。几分钟便能搭出一套App或小程序的核心界面，偷懒利器。"
-    },
-    {
-      "emoji": "🎛️",
-      "name": "十/十六进制颜色值转换工具",
-      "url": "http://greenzorro.github.io/hex-dec-color-transform",
-      "description": "App开发同学一定很痛恨设计师：你们给的颜色都是#ffffff这种格式，我要的是R:255, G:255, B:255，十六进制转十进制，这是要算死我么？"
-    },
-    {
-      "emoji": "⬅️",
-      "name": "HTML转markdown",
-      "url": "http://greenzorro.github.io/something-to-markdown/",
-      "description": "翻译时要把英文原文转成我习惯的markdown格式，但有些网站的内容混有太多markdown不支持的标签。对内容格式有洁癖的我，一定要想个办法“对付”它们。"
-    },
-    {
-      "emoji": "➡️",
-      "name": "markdown转HTML",
-      "url": "http://greenzorro.github.io/markdown-to-something",
-      "description": "markdown这么好用，写过一次就停不下来。所以希望能轻松把markdown转成各种不同形式，用在不同地方，甚至包括一些老古董编辑器。"
+      "description": {
+        "zh": "PS经常用于批量制作banner图，结合画板和生成图像资源功能，效率奇高。这就需要按顺序给大量画板重命名。自己写了个PS脚本，一键搞定。",
+        "en": "Streamline batch banner exports in PS. Automatically renames dozens of artboards sequentially to save you from naming headaches."
+      }
     },
     {
       "emoji": "🧮",
-      "name": "蒲丰投针实验",
+      "name": {
+        "zh": "蒲丰投针实验",
+        "en": "Buffon's Needle Simulation"
+      },
       "url": "https://greenzorro.github.io/find-out-pi",
-      "description": "不画圆也可以得出圆周率？这是个很有意思的数学和统计学问题。写了一个小程序模拟实验过程，亲自验证了一下。"
+      "description": {
+        "zh": "不画圆也可以得出圆周率？这是个很有意思的数学和统计学问题。写了一个小程序模拟实验过程，亲自验证了一下。",
+        "en": "Calculating Pi without circles? Explore the fascinating world of Buffon's Needle with this interactive statistical simulation."
+      }
     },
     {
       "emoji": "🧪",
-      "name": "混沌系统实验",
+      "name": {
+        "zh": "混沌系统实验",
+        "en": "Chaos System Explorer"
+      },
       "url": "http://greenzorro.github.io/chaos",
-      "description": "混沌是一种神秘却常见的现象，大量的无序中竟然能涌现出秩序。我对此深深着迷，自己动手做了一个小实验。"
+      "description": {
+        "zh": "混沌是一种神秘却常见的现象，大量的无序中竟然能涌现出秩序。我对此深深着迷，自己动手做了一个小实验。",
+        "en": "Order from disorder. A visual experiment exploring the mesmerizing and counterintuitive world of chaotic systems."
+      }
     },
     {
       "emoji": "🪚",
-      "name": "前端练习本",
+      "name": {
+        "zh": "前端练习本",
+        "en": "Frontend Sandbox"
+      },
       "url": "http://greenzorro.github.io/demo/",
-      "description": "我是个IE6时代的上古前端，把一些用到过的效果与技巧集中起来，分类整理，供自己学习练习用。代码混乱，略邋遢，请慎入~"
+      "description": {
+        "zh": "我是个IE6时代的上古前端，把一些用到过的效果与技巧集中起来，分类整理，供自己学习练习用。代码混乱，略邋遢，请慎入~",
+        "en": "A 'dinosaur' developer's sandbox. A messy collection of experimental frontend tricks from someone who survived the IE6 era. Enter at your own risk~"
+      }
     }
   ]
 }

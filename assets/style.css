@@ -99,6 +99,60 @@ a:hover {
     transform: rotate(180deg);
 }
 
+/* 语言切换按钮 */
+.lang-toggle {
+    position: fixed;
+    top: 20px;
+    right: 80px;
+    z-index: 1000;
+    height: 50px;
+    min-width: 80px;
+    padding: 0 20px;
+    border: none;
+    border-radius: 25px;
+    background: var(--color-card-background);
+    color: var(--color-text);
+    box-shadow:
+        0 4px 12px var(--color-card-shadow),
+        0 8px 24px var(--color-card-shadow);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.lang-toggle:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow:
+        0 6px 16px var(--color-card-shadow-hover),
+        0 12px 32px var(--color-card-shadow-hover);
+}
+
+.lang-toggle:active {
+    transform: translateY(0) scale(0.98);
+}
+
+.lang-icon {
+    font-size: 18px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lang-text {
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1;
+}
+
 /* 背景视频 */
 .background-video {
     position: fixed;
@@ -194,6 +248,8 @@ a:hover {
     line-height: 1.4;
     margin-bottom: 16px; /* Adjusted margin */
     text-align: left; /* Left align bio */
+    word-break: break-word; /* 允许长单词换行 */
+    overflow-wrap: break-word; /* 兼容性更好的换行 */
 }
 
 .profile-button {
