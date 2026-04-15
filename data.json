@@ -125,6 +125,30 @@
       }
     },
     {
+      "emoji": "✈️",
+      "name": {
+        "zh": "旅行攻略集",
+        "en": "Travel Guide Collection"
+      },
+      "url": "https://my.feishu.cn/wiki/U91Jwdxy1idOKpk0moYca5pGnVh?from=from_copylink",
+      "description": {
+        "zh": "历次旅行前做的详细攻略文档、旅行归来的长篇游记，以及制作旅行攻略的方法论。",
+        "en": "Detailed travel guides created before trips, lengthy travel journals after returning, and methodologies for crafting travel guides."
+      }
+    },
+    {
+      "emoji": "🔌",
+      "name": {
+        "zh": "全球电源插座指南",
+        "en": "Global Power Plug Directory"
+      },
+      "url": "https://world-plugs.victor42.work/",
+      "description": {
+        "zh": "出国旅行规划过程中，了解到了世界各地插座的不同标准，顺手做了个科普网站，方便有国际旅行计划的朋友参考。",
+        "en": "An accidental expert's guide to global power standards. Built while planning a trip to help fellow world travelers."
+      }
+    },
+    {
       "emoji": "🚫",
       "name": {
         "zh": "违禁词替换工具",
@@ -146,18 +170,6 @@
       "description": {
         "zh": "面对陌生的设备，帮你解决\"画布该设成多大\"的问题。",
         "en": "Stop guessing canvas sizes for new devices. Get the right UI dimensions instantly."
-      }
-    },
-    {
-      "emoji": "🔌",
-      "name": {
-        "zh": "全球电源插座指南",
-        "en": "Global Power Plug Directory"
-      },
-      "url": "https://world-plugs.victor42.work/",
-      "description": {
-        "zh": "出国旅行规划过程中，了解到了世界各地插座的不同标准，顺手做了个科普网站，方便有国际旅行计划的朋友参考。",
-        "en": "An accidental expert's guide to global power standards. Built while planning a trip to help fellow world travelers."
       }
     },
     {
