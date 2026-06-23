@@ -150,6 +150,18 @@
       }
     },
     {
+      "emoji": "📷",
+      "name": {
+        "zh": "旅行相册",
+        "en": "Travel Albums"
+      },
+      "url": "https://album.victor42.work/",
+      "description": {
+        "zh": "从历年游记中整理旅行照片，按旅程浏览图集与图片说明，也支持瀑布流和大图查看。",
+        "en": "Travel photos curated from years of trip journals, organized into albums with captions, masonry browsing, and full-size viewing."
+      }
+    },
+    {
       "emoji": "🔌",
       "name": {
         "zh": "全球电源插座指南",
