@@ -174,6 +174,19 @@
       }
     },
     {
+      "emoji": "📝",
+      "name": {
+        "zh": "编辑器MD图文混排助手",
+        "en": "Markdown Rich-Text Editor Assistant"
+      },
+      "url": "https://github.com/greenzorro/closed-editor-bridge",
+      "description": {
+        "zh": "在封闭富文本编辑器中手动上传图片后，把 Markdown 按图片间隙切成文字段，再用快捷键依次插到图片中间，完成全文录入。",
+        "en": "After manually uploading images in a closed rich-text editor, split Markdown into text segments and insert them between the images with shortcuts to complete the article."
+      },
+      "image": "../assets/images/%E7%BC%96%E8%be%91%E5%99%A8MD%E5%9b%be%E6%96%87%E6%b7%b7%E6%8e%92%E5%8a%A9%E6%89%8b.webp"
+    },
+    {
       "emoji": "🚫",
       "name": {
         "zh": "违禁词替换工具",
@@ -294,7 +307,7 @@
       }
     },
     {
-      "emoji": "📝",
+      "emoji": "🔤",
       "name": {
         "zh": "PS图层批量重命名脚本",
         "en": "PS Batch Artboard Renamer"
