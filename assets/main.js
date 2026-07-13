@@ -4,127 +4,124 @@
  * Created: 2025-07-16 08:05:41
  * Author: Victor Cheng
  * Email: hi@victor42.work
- * Description: 
+ * Description: Victor42 创造营地 - 小玩意工具集合
  */
 
-/**
- * Victor42 创造营地 - 小玩意工具集合
- * 主要功能脚本
- */
+const SITE_ORIGIN = 'https://work.victor42.work';
+const UI_TEXT = {
+    zh: {
+        loading: '正在加载小玩意...',
+        errorTitle: '😕 加载失败',
+        errorMessage: '无法加载产品数据，请检查网络连接或稍后重试。',
+        titleSuffix: '的创造营地 - 小玩意工具集合',
+        visit: '访问',
+        themeToggle: '切换深色模式',
+        langToggle: '切换语言'
+    },
+    en: {
+        loading: 'Loading gadgets...',
+        errorTitle: '😕 Failed to load',
+        errorMessage: 'Could not load product data. Please check your connection and try again.',
+        titleSuffix: "'s Creations - Gadgets & Tools",
+        visit: 'Visit',
+        themeToggle: 'Toggle dark mode',
+        langToggle: 'Switch language'
+    }
+};
 
-// 全局变量存储当前数据
 let currentData = null;
 let currentLanguage = 'zh';
+let videoSourcesAttached = false;
 
-// DOM加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
-    // 优化的初始化顺序
-    initializeLanguage(); // 初始化语言设置
-    updateThemeIcon(); // 更新图标状态
-    loadProducts(); // 优先加载主要内容
-    initializeBackgroundVideo(); // 初始化静态背景视频
+    initializeLanguage();
+    updateThemeIcon();
+    loadProducts();
+    initializeBackgroundVideo();
 });
 
-/**
- * 语言管理相关函数
- */
-
-// 初始化语言设置
 function initializeLanguage() {
-    // 1. 检查URL参数
     const urlParams = new URLSearchParams(window.location.search);
     const urlLang = urlParams.get('lang');
-
-    // 2. 检查localStorage
     const savedLang = localStorage.getItem('language');
 
-    // 3. 确定当前语言（优先级：URL参数 > localStorage > 默认中文）
-    if (urlLang && (urlLang === 'zh' || urlLang === 'en')) {
+    if (urlLang === 'zh' || urlLang === 'en') {
         currentLanguage = urlLang;
-    } else if (savedLang && (savedLang === 'zh' || savedLang === 'en')) {
+    } else if (savedLang === 'zh' || savedLang === 'en') {
         currentLanguage = savedLang;
     } else {
-        currentLanguage = 'zh'; // 默认中文
+        currentLanguage = 'zh';
     }
 
-    // 保存到localStorage
     localStorage.setItem('language', currentLanguage);
-
-    // 更新语言按钮显示
     updateLanguageButton();
-
-    // 更新HTML lang属性
     document.documentElement.lang = currentLanguage === 'zh' ? 'zh-CN' : 'en';
+    applyStaticUiText();
 
-    // 添加语言切换事件监听器
     const langToggle = document.getElementById('lang-toggle');
     if (langToggle) {
         langToggle.addEventListener('click', toggleLanguage);
     }
 }
 
-// 获取当前语言
-function getCurrentLanguage() {
-    return currentLanguage;
-}
-
-// 切换语言
 function toggleLanguage() {
-    const newLanguage = currentLanguage === 'zh' ? 'en' : 'zh';
-    setLanguage(newLanguage);
+    setLanguage(currentLanguage === 'zh' ? 'en' : 'zh');
 }
 
-// 设置语言
 function setLanguage(lang) {
     if (lang !== 'zh' && lang !== 'en') return;
 
     currentLanguage = lang;
     localStorage.setItem('language', lang);
 
-    // 更新URL参数（不刷新页面）
     const url = new URL(window.location);
     url.searchParams.set('lang', lang);
     window.history.replaceState({}, '', url);
 
-    // 更新HTML lang属性
     document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
-
-    // 更新语言按钮显示
     updateLanguageButton();
+    applyStaticUiText();
 
-    // 如果数据已加载，重新渲染页面
     if (currentData) {
         renderPage(currentData);
     }
 
-    // 更新meta标签
     updateMetaTags(lang);
 }
 
-// 更新语言按钮显示
 function updateLanguageButton() {
     const langText = document.querySelector('.lang-text');
     if (langText) {
-        // 显示当前语言的切换选项（如果当前是中文，显示"EN"，反之亦然）
         langText.textContent = currentLanguage === 'zh' ? 'EN' : '中文';
     }
 }
 
-// 获取翻译文本
+function applyStaticUiText() {
+    const t = UI_TEXT[currentLanguage];
+    const loadingText = document.getElementById('loading-text');
+    const errorTitle = document.getElementById('error-title');
+    const errorMessage = document.getElementById('error-message');
+    const themeToggle = document.getElementById('theme-toggle');
+    const langToggle = document.getElementById('lang-toggle');
+
+    if (loadingText) loadingText.textContent = t.loading;
+    if (errorTitle) errorTitle.textContent = t.errorTitle;
+    if (errorMessage) errorMessage.textContent = t.errorMessage;
+    if (themeToggle) themeToggle.setAttribute('aria-label', t.themeToggle);
+    if (langToggle) langToggle.setAttribute('aria-label', t.langToggle);
+}
+
 function getText(textObj) {
-    // 如果是字符串，直接返回
     if (typeof textObj === 'string') {
         return textObj;
     }
-    // 如果是对象且有zh/en属性，返回对应语言的文本
     if (typeof textObj === 'object' && textObj !== null) {
         if (currentLanguage in textObj) {
             return textObj[currentLanguage];
         }
         if ('zh' in textObj) {
-            return textObj['zh'];
+            return textObj.zh;
         }
-        // 返回对象的第一个值
         const values = Object.values(textObj);
         if (values.length > 0) {
             return values[0];
@@ -133,67 +130,99 @@ function getText(textObj) {
     return '';
 }
 
-// 更新meta标签
+function toAbsoluteUrl(path) {
+    if (!path) return '';
+    if (/^https?:\/\//i.test(path)) return path;
+    const normalized = path.replace(/^\.\//, '').replace(/^\//, '');
+    return `${SITE_ORIGIN}/${normalized}`;
+}
+
 function updateMetaTags(lang) {
-    // 更新HTML lang属性
     document.documentElement.setAttribute('lang', lang === 'zh' ? 'zh-CN' : 'en');
 
-    // 更新页面标题
+    if (!currentData) return;
+
+    const title = getText(currentData.title);
+    const fullTitle = `${title}${UI_TEXT[lang].titleSuffix}`;
+    const description = getText(currentData.description);
+
     const titleElement = document.getElementById('page-title');
-    if (titleElement && currentData) {
-        const title = getText(currentData.title);
-        const suffix = lang === 'zh' ? '的创造营地 - 小玩意工具集合' : "'s Creations - Gadgets & Tools";
-        titleElement.textContent = `${title}${suffix}`;
-
-        // 更新document.title
-        document.title = `${title}${suffix}`;
+    if (titleElement) {
+        titleElement.textContent = fullTitle;
     }
+    document.title = fullTitle;
 
-    // 更新meta description（如果数据中有提供）
     const metaDescription = document.querySelector('meta[name="description"]');
-    if (metaDescription && currentData) {
-        const description = getText(currentData.description);
+    if (metaDescription) {
         metaDescription.setAttribute('content', description);
     }
 
-    // 更新Open Graph标签
     const ogTitle = document.querySelector('meta[property="og:title"]');
     const ogDescription = document.querySelector('meta[property="og:description"]');
     const ogLocale = document.querySelector('meta[property="og:locale"]');
+    if (ogTitle) ogTitle.setAttribute('content', fullTitle);
+    if (ogDescription) ogDescription.setAttribute('content', description);
+    if (ogLocale) ogLocale.setAttribute('content', lang === 'zh' ? 'zh_CN' : 'en_US');
 
-    if (ogTitle && currentData) {
-        const title = getText(currentData.title);
-        const suffix = lang === 'zh' ? '的创造营地 - 小玩意工具集合' : "'s Creations - Gadgets & Tools";
-        ogTitle.setAttribute('content', `${title}${suffix}`);
-    }
-
-    if (ogDescription && currentData) {
-        const description = getText(currentData.description);
-        ogDescription.setAttribute('content', description);
-    }
-
-    if (ogLocale) {
-        ogLocale.setAttribute('content', lang === 'zh' ? 'zh_CN' : 'en_US');
-    }
-
-    // 更新Twitter Card标签
     const twitterTitle = document.querySelector('meta[name="twitter:title"]');
     const twitterDescription = document.querySelector('meta[name="twitter:description"]');
-
-    if (twitterTitle && currentData) {
-        const title = getText(currentData.title);
-        const suffix = lang === 'zh' ? '的创造营地 - 小玩意工具集合' : "'s Creations - Gadgets & Tools";
-        twitterTitle.setAttribute('content', `${title}${suffix}`);
-    }
-
-    if (twitterDescription && currentData) {
-        const description = getText(currentData.description);
-        twitterDescription.setAttribute('content', description);
-    }
+    if (twitterTitle) twitterTitle.setAttribute('content', fullTitle);
+    if (twitterDescription) twitterDescription.setAttribute('content', description);
 }
 
-// 加载产品数据
-// 异步加载所有产品
+function updateStructuredData(data) {
+    const script = document.getElementById('structured-data');
+    if (!script) return;
+
+    const itemListElement = data.products.map((product, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        item: {
+            '@type': 'SoftwareApplication',
+            name: getText(product.name),
+            description: getText(product.description),
+            url: product.url,
+            applicationCategory: 'WebApplication',
+            operatingSystem: 'Web',
+            ...(product.image ? { image: toAbsoluteUrl(product.image) } : {})
+        }
+    }));
+
+    const payload = {
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: currentLanguage === 'zh' ? 'Victor42的创造营地' : "Victor42's Creations",
+        alternateName: 'Victor42 Work Tools',
+        url: `${SITE_ORIGIN}/`,
+        description: getText(data.description),
+        author: {
+            '@type': 'Person',
+            name: 'Victor42',
+            url: data.profile.website.url,
+            image: toAbsoluteUrl(data.profile.avatar),
+            jobTitle: 'UI/UX Designer & Developer',
+            description: getText(data.profile.bio)
+        },
+        publisher: {
+            '@type': 'Person',
+            name: 'Victor42',
+            url: data.profile.website.url
+        },
+        inLanguage: currentLanguage === 'zh' ? 'zh-CN' : 'en',
+        copyrightYear: '2011',
+        dateModified: new Date().toISOString().slice(0, 10),
+        mainEntity: {
+            '@type': 'ItemList',
+            name: currentLanguage === 'zh' ? '小玩意工具集合' : 'Gadgets & Tools',
+            description: getText(data.description),
+            numberOfItems: data.products.length,
+            itemListElement
+        }
+    };
+
+    script.textContent = JSON.stringify(payload);
+}
+
 async function loadProducts() {
     try {
         const response = await fetch('./data.json');
@@ -202,12 +231,11 @@ async function loadProducts() {
         }
         const data = await response.json();
         renderPage(data);
+        updateMetaTags(currentLanguage);
     } catch (error) {
         console.error('Could not load products:', error);
-        // 显示错误信息
         document.getElementById('error').style.display = 'block';
     } finally {
-        // 隐藏加载动画
         const loading = document.getElementById('loading');
         if (loading) {
             loading.style.display = 'none';
@@ -215,57 +243,80 @@ async function loadProducts() {
     }
 }
 
-// 渲染页面
 function renderPage(data) {
-    // 保存数据到全局变量
     currentData = data;
 
-    // 设置页面描述 - 使用多语言支持
     document.getElementById('description').textContent = getText(data.description);
 
-    // 设置动态年份
     const currentYear = new Date().getFullYear();
-    const codeLink = '<a href="https://github.com/greenzorro/victor42-work" target="_blank" rel="noopener noreferrer">Code</a>';
-    document.getElementById('footer-text').innerHTML = `© 2011 - ${currentYear} <a href="${data.profile.website.url}" target="_blank" rel="noopener noreferrer">Victor42</a> | ${codeLink}`;
+    const footer = document.getElementById('footer-text');
+    footer.textContent = '';
+    footer.appendChild(document.createTextNode(`© 2011 - ${currentYear} `));
 
-    // 渲染个人信息，传入title用于显示
+    const authorLink = document.createElement('a');
+    authorLink.href = data.profile.website.url;
+    authorLink.target = '_blank';
+    authorLink.rel = 'noopener noreferrer';
+    authorLink.textContent = 'Victor42';
+    footer.appendChild(authorLink);
+    footer.appendChild(document.createTextNode(' | '));
+
+    const codeLink = document.createElement('a');
+    codeLink.href = 'https://github.com/greenzorro/victor42-work';
+    codeLink.target = '_blank';
+    codeLink.rel = 'noopener noreferrer';
+    codeLink.textContent = 'Code';
+    footer.appendChild(codeLink);
+
     renderProfile(data.profile, getText(data.title));
-
-    // 按原始顺序保持产品排列
-    const products = data.products;
 
     const productsGrid = document.getElementById('products-grid');
     productsGrid.innerHTML = '';
 
-    products.forEach((product) => {
-        // 根据是否有图片决定卡片大小
+    data.products.forEach((product) => {
         const cardSize = product.image ? 'large' : 'small';
-        const card = createProductCard(product, cardSize);
-        productsGrid.appendChild(card);
+        productsGrid.appendChild(createProductCard(product, cardSize));
     });
 
-    // 隐藏加载动画，显示内容
-    document.getElementById('loading').style.display = 'none';
+    updateStructuredData(data);
+
     document.getElementById('content').style.display = 'block';
 }
 
-// 渲染个人信息
 function renderProfile(profile, title) {
     const profileSection = document.getElementById('profile-section');
+    profileSection.textContent = '';
 
-    profileSection.innerHTML = `
-        <div class="profile-avatar">
-            <img src="${profile.avatar}" alt="Victor42头像照片" loading="lazy" itemprop="image">
-        </div>
-        <div class="profile-name" itemprop="name">${title}</div>
-        <div class="profile-bio" itemprop="description">${getText(profile.bio)}</div>
-        <a href="${profile.website.url}" target="_blank" rel="noopener noreferrer" class="profile-button" itemprop="url">
-            ${getText(profile.website.title)} →
-        </a>
-    `;
+    const avatarWrap = document.createElement('div');
+    avatarWrap.className = 'profile-avatar';
+    const avatar = document.createElement('img');
+    avatar.src = profile.avatar;
+    avatar.alt = currentLanguage === 'zh' ? 'Victor42头像' : 'Victor42 avatar';
+    avatar.loading = 'lazy';
+    avatar.setAttribute('itemprop', 'image');
+    avatarWrap.appendChild(avatar);
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'profile-name';
+    nameEl.setAttribute('itemprop', 'name');
+    nameEl.textContent = title;
+
+    const bioEl = document.createElement('div');
+    bioEl.className = 'profile-bio';
+    bioEl.setAttribute('itemprop', 'description');
+    bioEl.textContent = getText(profile.bio);
+
+    const siteLink = document.createElement('a');
+    siteLink.href = profile.website.url;
+    siteLink.target = '_blank';
+    siteLink.rel = 'noopener noreferrer';
+    siteLink.className = 'profile-button';
+    siteLink.setAttribute('itemprop', 'url');
+    siteLink.textContent = `${getText(profile.website.title)} →`;
+
+    profileSection.append(avatarWrap, nameEl, bioEl, siteLink);
 }
 
-// 创建产品卡片
 function createProductCard(product, cardSize) {
     const card = document.createElement('a');
     card.className = `product-card ${cardSize}-card`;
@@ -276,48 +327,100 @@ function createProductCard(product, cardSize) {
     card.setAttribute('itemtype', 'https://schema.org/SoftwareApplication');
     card.setAttribute('itemprop', 'itemListElement');
 
-    // 获取多语言文本
     const productName = getText(product.name);
     const productDescription = getText(product.description);
+    const visitLabel = UI_TEXT[currentLanguage].visit;
+    card.setAttribute('aria-label', `${visitLabel} ${productName}: ${productDescription}`);
 
-    // 添加aria-label提升可访问性
-    card.setAttribute('aria-label', `访问${productName}：${productDescription}`);
+    if (product.image) {
+        const imageWrap = document.createElement('div');
+        imageWrap.className = 'product-image';
+        const img = document.createElement('img');
+        img.src = product.image;
+        img.alt = `${productName} - ${productDescription}`;
+        img.loading = 'lazy';
+        img.setAttribute('itemprop', 'image');
+        imageWrap.appendChild(img);
+        card.appendChild(imageWrap);
+    }
 
-    card.innerHTML = `
-        ${product.image ? `<div class="product-image">
-            <img src="${product.image}" alt="${productName}产品截图 - ${productDescription}" loading="lazy" itemprop="image">
-        </div>` : ''}
-        <div class="product-content">
-            <div class="product-emoji" aria-hidden="true">${product.emoji}</div>
-            <h3 class="product-name" itemprop="name">${productName}</h3>
-            <p class="product-description" itemprop="description">${productDescription}</p>
-            <meta itemprop="url" content="${product.url}">
-            <meta itemprop="applicationCategory" content="WebApplication">
-        </div>
-    `;
+    const content = document.createElement('div');
+    content.className = 'product-content';
 
+    const emoji = document.createElement('div');
+    emoji.className = 'product-emoji';
+    emoji.setAttribute('aria-hidden', 'true');
+    emoji.textContent = product.emoji || '';
+
+    const name = document.createElement('h3');
+    name.className = 'product-name';
+    name.setAttribute('itemprop', 'name');
+    name.textContent = productName;
+
+    const desc = document.createElement('p');
+    desc.className = 'product-description';
+    desc.setAttribute('itemprop', 'description');
+    desc.textContent = productDescription;
+
+    const urlMeta = document.createElement('meta');
+    urlMeta.setAttribute('itemprop', 'url');
+    urlMeta.content = product.url;
+
+    const catMeta = document.createElement('meta');
+    catMeta.setAttribute('itemprop', 'applicationCategory');
+    catMeta.content = 'WebApplication';
+
+    content.append(emoji, name, desc, urlMeta, catMeta);
+    card.appendChild(content);
     return card;
 }
 
+function prefersReducedMotion() {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
 
+function ensureVideoSources(video) {
+    if (videoSourcesAttached || !video) return;
+    const webm = document.createElement('source');
+    webm.src = 'assets/images/milky-way.webm';
+    webm.type = 'video/webm';
+    const mp4 = document.createElement('source');
+    mp4.src = 'assets/images/milky-way.mp4';
+    mp4.type = 'video/mp4';
+    video.append(webm, mp4);
+    videoSourcesAttached = true;
+    video.load();
+}
 
-// 更新主题图标状态（主题已在head中设置）
+function playBackgroundVideo() {
+    const video = document.getElementById('background-video');
+    if (!video || prefersReducedMotion()) return;
+    ensureVideoSources(video);
+    video.play().catch((error) => {
+        console.log('背景视频播放失败:', error);
+    });
+}
+
+function pauseBackgroundVideo() {
+    const video = document.getElementById('background-video');
+    if (!video) return;
+    video.pause();
+}
+
 function updateThemeIcon() {
     const html = document.documentElement;
     const themeIcon = document.querySelector('.theme-icon');
     const currentTheme = html.getAttribute('data-theme');
-    
+
     if (themeIcon) {
         themeIcon.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
     }
-    
-    // 添加切换按钮事件监听器
+
     const themeToggle = document.getElementById('theme-toggle');
     if (themeToggle) {
         themeToggle.addEventListener('click', toggleTheme);
     }
-    
-    // 监听系统主题变化
+
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
         if (!localStorage.getItem('theme')) {
             applyTheme(e.matches ? 'dark' : 'light');
@@ -328,66 +431,37 @@ function updateThemeIcon() {
 function applyTheme(theme) {
     const html = document.documentElement;
     const themeIcon = document.querySelector('.theme-icon');
-    const backgroundVideo = document.querySelector('.background-video');
-    
+
     if (theme === 'dark') {
         html.setAttribute('data-theme', 'dark');
         if (themeIcon) themeIcon.textContent = '☀️';
-        
-        // 播放背景视频
-        if (backgroundVideo) {
-            backgroundVideo.play().catch(error => {
-                console.log('背景视频播放失败:', error);
-            });
-        }
+        playBackgroundVideo();
     } else {
         html.removeAttribute('data-theme');
         if (themeIcon) themeIcon.textContent = '🌙';
-        
-        // 暂停背景视频
-        if (backgroundVideo) {
-            backgroundVideo.pause();
-        }
+        pauseBackgroundVideo();
     }
 }
 
 function toggleTheme() {
-    const html = document.documentElement;
-    const currentTheme = html.getAttribute('data-theme');
+    const currentTheme = document.documentElement.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    
-    // 应用新主题
     applyTheme(newTheme);
-    
-    // 保存用户偏好
     localStorage.setItem('theme', newTheme);
 }
 
-// 初始化背景视频（静态元素）
 function initializeBackgroundVideo() {
-    const backgroundVideo = document.querySelector('.background-video');
-    const html = document.documentElement;
-    const isDarkMode = html.getAttribute('data-theme') === 'dark';
-    
-    if (backgroundVideo) {
-        // 触发浏览器自动选择最佳视频格式
-        backgroundVideo.load();
-        
-        // 优化的事件监听
-        backgroundVideo.addEventListener('error', function() {
-            console.log('背景视频加载失败，使用纯色背景');
-            backgroundVideo.style.display = 'none';
-        });
-        
-        backgroundVideo.addEventListener('loadeddata', function() {
-            console.log('背景视频加载成功');
-        });
-        
-        // 根据当前主题决定是否播放
-        if (isDarkMode) {
-            backgroundVideo.play().catch(error => {
-                console.log('背景视频播放失败:', error);
-            });
-        }
+    const video = document.getElementById('background-video');
+    if (!video) return;
+
+    video.addEventListener('error', function() {
+        console.log('背景视频加载失败，使用纯色背景');
+        video.style.display = 'none';
+    });
+
+    const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+    if (isDarkMode && !prefersReducedMotion()) {
+        playBackgroundVideo();
     }
 }
+
