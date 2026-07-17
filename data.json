@@ -287,7 +287,7 @@
         "zh": "瓴羊刷题助手",
         "en": "Lingyang Exam Helper"
       },
-      "url": "https://greasyfork.org/en/scripts/522657-%E7%93%B4%E7%BE%8A%E5%88%B7%E9%A2%98%E5%8A%A9%E6%89%8B",
+      "url": "https://github.com/greenzorro/ly-certification",
       "description": {
         "zh": "在瓴羊认证考个证，发现它模拟考只保留最近5次考试记录。做了个脚本，考完可以把全部答题记录导出成表格，便于分析错题和制作错题集。",
         "en": "Hack your way to certification. Lingyang's mock exams only show the last 5 attempts, so I built a script to export your full history for deep error analysis."

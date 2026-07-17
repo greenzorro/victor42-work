@@ -7,8 +7,8 @@
  */
 
 const SITE_ORIGIN = 'https://work.victor42.work';
-const SITE_DATE_MODIFIED = '2026-07-16';
-const DATA_URL = './data.json?v=20260716';
+const SITE_DATE_MODIFIED = '2026-07-17';
+const DATA_URL = './data.json?v=20260717';
 
 const UI_TEXT = {
     zh: {

@@ -17,7 +17,7 @@
 - **JavaScript (ES6)**：`fetch` 加载数据、DOM 渲染、语言/主题
 - **JSON**：`data.json` 为唯一内容源（文案双语）
 - **LocalStorage**：主题 `theme`、语言 `language`
-- **Canvas 星云**：`assets/background.js`（可移植模块 `StarfieldBackground`），深色主题时由主脚本 start/stop
+- **Canvas 星云**：`assets/background_dark.js`（可移植模块 `StarfieldBackground`），深色主题时由主脚本 start/stop
 
 ### 2.2 文件结构
 
@@ -27,7 +27,7 @@ victor42-work/
 ├── data.json           # 标题 / 简介 / 作品列表（中英）
 ├── assets/
 │   ├── main.js         # 加载、渲染、语言、主题
-│   ├── background.js   # 可移植星云背景（StarfieldBackground）
+│   ├── background_dark.js # 可移植星云背景（StarfieldBackground）
 │   ├── style.css       # 布局与主题样式
 │   └── images/         # 头像、封面、favicon
 ├── sitemap.xml         # 仅本域可索引 URL
@@ -73,7 +73,7 @@ victor42-work/
 
 - head 内联脚本读 localStorage / `prefers-color-scheme`，写 `data-theme`，避免 FOUC
 - 深色：`#18191a` 背景、半透明卡片、`<canvas class="background-canvas">` opacity 0.62
-- 星云逻辑在独立 `assets/background.js`，全局 API：`StarfieldBackground.init / start / stop / isRunning / destroy`
+- 星云逻辑在独立 `assets/background_dark.js`，全局 API：`StarfieldBackground.init / start / stop / isRunning / destroy`
 - 视觉 L3 管线：
   1. 预渲染 face-on 连续密度场（旋臂 + 尘带压暗 + 色阶）
   2. 多级缩小/放大模糊 → 星云体而非珠串
@@ -86,7 +86,7 @@ victor42-work/
 - 主站只负责：dark → `start()`，light → `stop()`；模块内部处理 resize、tab 可见性、`prefers-reduced-motion`
 - `prefers-reduced-motion: reduce` 时停止并清空 Canvas，CSS 同时隐藏背景；恢复后按当前主题决定是否重启
 - 暂停/恢复且视口未变化时复用纹理与粒子资源；`destroy()` 会解除全部监听器并清理延迟任务
-- 移植：拷贝 `background.js` + 对应 CSS（`.background-canvas`），挂一个 canvas 后调用 API 即可
+- 移植：拷贝 `background_dark.js` + 对应 CSS（`.background-canvas`），挂一个 canvas 后调用 API 即可
 
 ### 3.5 缓存与资源版本
 
@@ -159,7 +159,7 @@ victor42-work/
 - **空白 / 加载失败**：Network 看 `data.json` 是否 200；校验 JSON 语法；确认 `DATA_URL` 版本路径
 - **主题不切换**：Application → Local Storage 的 `theme`；控制台报错
 - **语言不切换**：`language` 与 URL `lang`；`data.json` 是否缺 `en` 字段（会回退中文）
-- **星云不显示**：是否 dark；系统是否「减少动态效果」；`background.js` 是否先于 `main.js` 加载；控制台是否有脚本错误
+- **星云不显示**：是否 dark；系统是否「减少动态效果」；`background_dark.js` 是否先于 `main.js` 加载；控制台是否有脚本错误
 - **分享图不对**：OG/Twitter 必须用绝对 URL（当前指向 `work.victor42.work`）
 - **缓存旧列表**：硬刷新；检查 `data.json?v=` 是否已 bump
 

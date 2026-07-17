@@ -1,5 +1,5 @@
 /*
- * File: background.js
+ * File: background_dark.js
  * Project: victor42-work (portable)
  * Description: L3 oblique spiral galaxy — continuous disk texture + particles.
  *
@@ -513,7 +513,6 @@
                 y: rand(),
                 size: size,
                 a: a,
-                tw: rand() * Math.PI * 2,
                 cr: Math.round(lerp(190, 255, rand())),
                 cg: Math.round(lerp(200, 255, rand())),
                 cb: 255
@@ -552,7 +551,6 @@
                 z: z,
                 size: size,
                 a: a,
-                tw: rand() * Math.PI * 2,
                 cr: Math.round(lerp(220, 255, rand())),
                 cg: Math.round(lerp(210, 250, rand())),
                 cb: Math.round(lerp(170, 225, rand()))
@@ -669,12 +667,11 @@
         ctx.fillRect(0, 0, w, h);
     }
 
-    function drawField(ctx, w, h, ts) {
+    function drawField(ctx, w, h) {
         const stars = state.fieldStars;
         for (let i = 0; i < stars.length; i++) {
             const st = stars[i];
-            const tw = 0.88 + 0.12 * Math.sin(ts * 0.0009 + st.tw);
-            const a = st.a * tw * 0.4;
+            const a = st.a * 0.4;
             ctx.beginPath();
             ctx.fillStyle = 'rgba(' + st.cr + ',' + st.cg + ',' + st.cb + ',' + a + ')';
             ctx.arc(st.x * w, st.y * h, st.size, 0, Math.PI * 2);
@@ -683,20 +680,19 @@
         const bright = state.brightField;
         for (let i = 0; i < bright.length; i++) {
             const st = bright[i];
-            const tw = 0.9 + 0.1 * Math.sin(ts * 0.0007 + st.tw);
             const x = st.x * w;
             const y = st.y * h;
             softRadial(ctx, x, y, st.size * 7, [
-                [0, 'rgba(255,255,255,' + (0.32 * tw) + ')'],
-                [0.15, 'rgba(220,230,255,' + (0.14 * tw) + ')'],
-                [0.45, 'rgba(160,180,255,' + (0.045 * tw) + ')'],
+                [0, 'rgba(255,255,255,0.32)'],
+                [0.15, 'rgba(220,230,255,0.14)'],
+                [0.45, 'rgba(160,180,255,0.045)'],
                 [1, 'rgba(80,100,180,0)']
             ]);
-            drawSpike(ctx, x, y, st.size * 6.5, 0.14 * tw);
+            drawSpike(ctx, x, y, st.size * 6.5, 0.14);
         }
     }
 
-    function drawHalo(ctx, cx, cy, s, ts) {
+    function drawHalo(ctx, cx, cy, s) {
         if (!state.haloStars) return;
         const stars = state.haloStars;
         const bright = state.brightHalo;
@@ -706,8 +702,7 @@
             const pr = project(st.x, st.y, st.z, 1, 0);
             const x = cx + pr.x * s;
             const y = cy + pr.y * s * 0.9;
-            const tw = 0.92 + 0.08 * Math.sin(ts * 0.0005 + st.tw);
-            const a = st.a * tw * 0.35;
+            const a = st.a * 0.35;
             ctx.beginPath();
             ctx.fillStyle = 'rgba(' + st.cr + ',' + st.cg + ',' + st.cb + ',' + a + ')';
             ctx.arc(x, y, st.size, 0, Math.PI * 2);
@@ -718,39 +713,37 @@
             const pr = project(st.x, st.y, st.z, 1, 0);
             const x = cx + pr.x * s;
             const y = cy + pr.y * s * 0.9;
-            const tw = 0.9 + 0.1 * Math.sin(ts * 0.0004 + st.tw);
             softRadial(ctx, x, y, st.size * 5, [
-                [0, 'rgba(255,245,220,' + (0.14 * tw) + ')'],
-                [0.18, 'rgba(240,220,190,' + (0.06 * tw) + ')'],
-                [0.5, 'rgba(180,160,140,' + (0.018 * tw) + ')'],
+                [0, 'rgba(255,245,220,0.14)'],
+                [0.18, 'rgba(240,220,190,0.06)'],
+                [0.5, 'rgba(180,160,140,0.018)'],
                 [1, 'rgba(80,70,60,0)']
             ]);
         }
     }
 
-    // Continuous disk: pre-rendered texture, tilted + spinning
-    function drawGalaxyDisk(ctx, cx, cy, s, angle) {
+    // Draw a single 3D-sliced layer of the galaxy disk at a specific Z-offset
+    function drawGalaxySlice(ctx, cx, cy, s, angle, z, opacity, scaleFactor) {
         if (!state.texture) return;
         const tex = state.texture;
-        // Slight off-center placement so composition isn't textbook-symmetric
-        const half = s * 1.06;
-        const ox = s * 0.02;
-        const oy = s * -0.015;
+        
+        // Project the Z-offset (0, 0, z) into screen coordinates
+        const pr = project(0, 0, z, 1, 0);
+        
+        // Base off-center offset + projected translation
+        const ox = s * 0.02 + pr.x * s;
+        const oy = s * -0.015 + pr.y * s * 0.9;
+        const half = s * 1.06 * scaleFactor;
 
         ctx.save();
         ctx.translate(cx + ox, cy + oy);
         ctx.rotate((state.options.yawDeg * Math.PI) / 180);
-        // Tiny non-uniform squash — less "perfect ellipse"
         ctx.scale(1.02, state.squashY * 0.98);
         ctx.rotate(angle);
-        ctx.globalAlpha = 0.88;
+        ctx.globalAlpha = opacity;
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(tex, -half, -half, half * 2, half * 2);
-
-        // Very soft extended veil, offset so it doesn't read as a second hard rim
-        ctx.globalAlpha = 0.16;
-        ctx.drawImage(tex, -half * 1.1 + s * 0.02, -half * 1.08 - s * 0.01, half * 2.2, half * 2.16);
         ctx.restore();
     }
 
@@ -880,12 +873,9 @@
         ctx.clearRect(0, 0, w, h);
 
         drawSpaceGradient(ctx, w, h);
-        drawField(ctx, w, h, ts);
-        drawHalo(ctx, cx, cy, s, ts);
-        drawBulge(ctx, cx, cy, s, cosA, sinA);
-        drawGalaxyDisk(ctx, cx, cy, s, state.angle);
-
-        // Sparkle layer: depth-sorted particles (near side slightly larger)
+        drawField(ctx, w, h);
+        drawHalo(ctx, cx, cy, s);
+        // 1. Sparkle layer: project all particles and calculate screen positions & depths
         const projected = state.projected;
         for (let i = 0; i < particles.length; i++) {
             const p = particles[i];
@@ -905,36 +895,70 @@
             out.zAbs = Math.abs(p.z);
         }
 
+        // 2. Sort particles by depth from back to front
         projected.sort(function (a, b) {
             return a.depth - b.depth;
         });
 
-        for (let i = 0; i < projected.length; i++) {
-            const p = projected[i];
-            if (p.sx < -40 || p.sy < -40 || p.sx > w + 40 || p.sy > h + 40) continue;
+        // 3. Build static 3D slices of the galaxy disk and the central Bulge, sorted by depth
+        // We reduce the Z-spread and lower the opacity of outer slices to prevent double-image ghosting
+        // on sharp dust lanes, while keeping the main disk (z=0) sharp and dominant.
+        const depthFactor = state.cosYaw * state.cosTilt;
+        const staticItems = [
+            { type: 'slice', depth: -0.018 * depthFactor, z: -0.018, opacity: 0.08, scale: 1.08 },
+            { type: 'slice', depth: -0.008 * depthFactor, z: -0.008, opacity: 0.20, scale: 1.04 },
+            { type: 'slice', depth: 0.0 * depthFactor, z: 0.0, opacity: 0.65, scale: 1.0 },
+            { type: 'bulge', depth: 0.0 },
+            { type: 'slice', depth: 0.008 * depthFactor, z: 0.008, opacity: 0.20, scale: 1.04 },
+            { type: 'slice', depth: 0.018 * depthFactor, z: 0.018, opacity: 0.08, scale: 1.08 }
+        ];
+        staticItems.sort(function (a, b) {
+            return a.depth - b.depth;
+        });
 
-            const depthFade = clamp(0.72 + p.depth * 0.45, 0.36, 1.2);
-            // Near-side thickness cue
-            const thick = 1 + p.zAbs * 8;
-            const alpha = clamp(p.brightness * depthFade * 0.75, 0.03, 0.9);
-            const radius = p.size * (0.6 + depthFade * 0.5) * thick;
+        // 4. Merge-draw both loops in a single unified linear pass to interleave slices, bulge, and stars perfectly
+        let pIdx = 0;
+        let sIdx = 0;
+        const numParticles = projected.length;
+        const numStatic = staticItems.length;
 
-            if (p.kind === 'bright' || p.kind === 'core') {
-                softRadial(ctx, p.sx, p.sy, radius * 5, [
-                    [0, 'rgba(' + p.cr + ',' + p.cg + ',' + p.cb + ',' + (alpha * 0.32) + ')'],
-                    [0.25, 'rgba(' + p.cr + ',' + p.cg + ',' + p.cb + ',' + (alpha * 0.12) + ')'],
-                    [0.6, 'rgba(' + p.cr + ',' + p.cg + ',' + p.cb + ',' + (alpha * 0.035) + ')'],
-                    [1, 'rgba(' + p.cr + ',' + p.cg + ',' + p.cb + ',0)']
-                ]);
-                if (p.kind === 'bright') {
-                    drawSpike(ctx, p.sx, p.sy, radius * 3.2, alpha * 0.35);
+        while (pIdx < numParticles || sIdx < numStatic) {
+            const nextIsStatic = sIdx < numStatic && (pIdx >= numParticles || staticItems[sIdx].depth <= projected[pIdx].depth);
+
+            if (nextIsStatic) {
+                const item = staticItems[sIdx++];
+                if (item.type === 'slice') {
+                    drawGalaxySlice(ctx, cx, cy, s, state.angle, item.z, item.opacity, item.scale);
+                } else if (item.type === 'bulge') {
+                    drawBulge(ctx, cx, cy, s, cosA, sinA);
                 }
-            }
+            } else {
+                const p = projected[pIdx++];
+                if (p.sx < -40 || p.sy < -40 || p.sx > w + 40 || p.sy > h + 40) continue;
 
-            ctx.beginPath();
-            ctx.fillStyle = 'rgba(' + p.cr + ',' + p.cg + ',' + p.cb + ',' + alpha + ')';
-            ctx.arc(p.sx, p.sy, radius, 0, Math.PI * 2);
-            ctx.fill();
+                const depthFade = clamp(0.72 + p.depth * 0.45, 0.36, 1.2);
+                // Near-side thickness cue
+                const thick = 1 + p.zAbs * 8;
+                const alpha = clamp(p.brightness * depthFade * 0.75, 0.03, 0.9);
+                const radius = p.size * (0.6 + depthFade * 0.5) * thick;
+
+                if (p.kind === 'bright' || p.kind === 'core') {
+                    softRadial(ctx, p.sx, p.sy, radius * 5, [
+                        [0, 'rgba(' + p.cr + ',' + p.cg + ',' + p.cb + ',' + (alpha * 0.32) + ')'],
+                        [0.25, 'rgba(' + p.cr + ',' + p.cg + ',' + p.cb + ',' + (alpha * 0.12) + ')'],
+                        [0.6, 'rgba(' + p.cr + ',' + p.cg + ',' + p.cb + ',' + (alpha * 0.035) + ')'],
+                        [1, 'rgba(' + p.cr + ',' + p.cg + ',' + p.cb + ',0)']
+                    ]);
+                    if (p.kind === 'bright') {
+                        drawSpike(ctx, p.sx, p.sy, radius * 3.2, alpha * 0.35);
+                    }
+                }
+
+                ctx.beginPath();
+                ctx.fillStyle = 'rgba(' + p.cr + ',' + p.cg + ',' + p.cb + ',' + alpha + ')';
+                ctx.arc(p.sx, p.sy, radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
 
         state.raf = global.requestAnimationFrame(frame);
