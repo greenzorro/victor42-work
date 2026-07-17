@@ -78,7 +78,7 @@
     }
     </script>
 
-    <link rel="stylesheet" href="./assets/style.css?v=5">
+    <link rel="stylesheet" href="./assets/style.css?v=8.19">
 
     <!-- Apply saved/system theme before paint (avoid FOUC) -->
     <script>
@@ -93,7 +93,7 @@
     </script>
 </head>
   <body>
-      <video class="background-video" id="background-video" muted loop playsinline preload="none" aria-hidden="true"></video>
+      <canvas class="background-canvas" id="background-canvas" aria-hidden="true"></canvas>
 
       <button class="theme-toggle" id="theme-toggle" aria-label="切换深色模式" type="button">
           <span class="theme-icon" aria-hidden="true">🌙</span>
@@ -135,6 +135,7 @@
         </main>
     </div>
 
-    <script src="assets/main.js?v=5"></script>
+    <script src="assets/background.js?v=8.19"></script>
+    <script src="assets/main.js?v=8.19"></script>
     </body>
 </html>

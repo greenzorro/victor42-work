@@ -1,0 +1,1057 @@
+/*
+ * File: background.js
+ * Project: victor42-work (portable)
+ * Description: L3 oblique spiral galaxy — continuous disk texture + particles.
+ *
+ * Pipeline:
+ *  1) Pre-render face-on continuous density field (arms, dust cutouts, color)
+ *  2) Soft multi-pass blur (nebula body, not particle beads)
+ *  3) Each frame: draw texture with tilt squash + in-plane spin
+ *  4) Overlay 3D-projected star particles (depth, near-side thickness)
+ *  5) Soft bulge bloom + deep-field stars
+ *
+ * Dynamics: CCW disk spin; trailing log spirals θ = -ln(r)/b.
+ * API: StarfieldBackground.init / start / stop / isRunning / destroy
+ */
+(function (global) {
+    'use strict';
+
+    const DEFAULTS = {
+        targetFps: 30,
+        rotationPeriodSec: 300,
+        dprCap: 1.5,
+        textureSize: 480,
+        particleCount: 4800,
+        fieldStarCount: 1600,
+        tiltDeg: 76,
+        yawDeg: -20,
+        armCount: 2,
+        armTightness: 0.27,
+        scaleFactor: 0.9
+    };
+
+    const state = {
+        canvas: null,
+        ctx: null,
+        texture: null,
+        particles: null,
+        projected: null,
+        fieldStars: null,
+        brightField: null,
+        haloStars: null,
+        brightHalo: null,
+        angle: 0,
+        raf: 0,
+        running: false,
+        wantRun: false,
+        lastTs: 0,
+        dpr: 1,
+        cssW: 0,
+        cssH: 0,
+        scale: 1,
+        resizeTimer: 0,
+        listenersBound: false,
+        motionQuery: null,
+        options: Object.assign({}, DEFAULTS),
+        cosTilt: 1,
+        sinTilt: 0,
+        cosYaw: 1,
+        sinYaw: 0,
+        squashY: 0.3
+    };
+
+    function getMotionQuery() {
+        if (!state.motionQuery) {
+            state.motionQuery = global.matchMedia('(prefers-reduced-motion: reduce)');
+        }
+        return state.motionQuery;
+    }
+
+    function prefersReducedMotion() {
+        return getMotionQuery().matches;
+    }
+
+    function mulberry32(seed) {
+        return function () {
+            let t = (seed += 0x6d2b79f5);
+            t = Math.imul(t ^ (t >>> 15), t | 1);
+            t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+    }
+
+    function clamp(v, a, b) {
+        return Math.max(a, Math.min(b, v));
+    }
+
+    function lerp(a, b, t) {
+        return a + (b - a) * t;
+    }
+
+    function smoothstep(e0, e1, x) {
+        const t = clamp((x - e0) / (e1 - e0), 0, 1);
+        return t * t * (3 - 2 * t);
+    }
+
+    function updateViewMatrix() {
+        const tilt = (state.options.tiltDeg * Math.PI) / 180;
+        const yaw = (state.options.yawDeg * Math.PI) / 180;
+        state.cosTilt = Math.cos(tilt);
+        state.sinTilt = Math.sin(tilt);
+        state.cosYaw = Math.cos(yaw);
+        state.sinYaw = Math.sin(yaw);
+        // tiltDeg = angle from face-on toward edge-on
+        state.squashY = Math.max(0.12, Math.cos(tilt));
+    }
+
+    // Cheap value noise / fbm for organic breakup (not a perfect CAD spiral).
+    function hash2(x, y) {
+        const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453123;
+        return n - Math.floor(n);
+    }
+
+    function valueNoise(x, y) {
+        const x0 = Math.floor(x);
+        const y0 = Math.floor(y);
+        const fx = x - x0;
+        const fy = y - y0;
+        const ux = fx * fx * (3 - 2 * fx);
+        const uy = fy * fy * (3 - 2 * fy);
+        const a = hash2(x0, y0);
+        const b = hash2(x0 + 1, y0);
+        const c = hash2(x0, y0 + 1);
+        const d = hash2(x0 + 1, y0 + 1);
+        return lerp(lerp(a, b, ux), lerp(c, d, ux), uy);
+    }
+
+    function fbm(x, y) {
+        let v = 0;
+        let a = 0.5;
+        let f = 1;
+        for (let i = 0; i < 4; i++) {
+            v += a * valueNoise(x * f, y * f);
+            f *= 2.05;
+            a *= 0.5;
+        }
+        return v;
+    }
+
+    // Trailing arms + asymmetry, phase jitter, clumps, weak spurs.
+    function armDensity(r, theta, arms, tightness) {
+        let d = 0;
+        // Arm 0 stronger / arm 1 weaker & slightly different pitch (real disks aren't twins)
+        const strength = [1.05, 0.68];
+        const tightMul = [0.94, 1.14];
+        const phase0 = [0.0, 0.42];
+
+        for (let a = 0; a < arms; a++) {
+            const n1 = fbm(r * 3.1 + a * 7.3, theta * 1.4 + a) - 0.5;
+            const n2 = fbm(r * 9.0 + theta * 2.2, a * 4.1) - 0.5;
+            // Gentler phase jitter to preserve clean logarithmic spiral flow
+            const phaseJitter = n1 * 0.25 + n2 * 0.12;
+            const localTight = tightness * tightMul[a];
+            const phase = arms * (theta + Math.log(Math.max(r, 0.03)) / localTight)
+                + phase0[a] * arms
+                + phaseJitter;
+            let wave = 0.5 + 0.5 * Math.cos(phase);
+            wave = Math.pow(wave, 1.35);
+            // Gentler brightness clumps along the arm
+            const clump = 0.7 + 0.5 * fbm(r * 5.5 + a * 2, theta * 3.8 + r * 2.5);
+            // Gentler arm width breaks / holes to keep arms continuous
+            const breakUp = 0.8 + 0.3 * fbm(theta * 2.5 + r * 4, a * 9 + r * 1.2);
+            d = Math.max(d, wave * strength[a] * clump * breakUp);
+        }
+
+        // Faint irregular spur / bridge
+        const spurPhase = 3.15 * (theta + Math.log(Math.max(r, 0.03)) / 0.38 + 0.7);
+        let spur = 0.5 + 0.5 * Math.cos(spurPhase);
+        spur = spur * spur * (0.15 + 0.35 * fbm(r * 6, theta * 5));
+        d = Math.max(d, spur);
+
+        return clamp(d, 0, 1.55);
+    }
+
+    function armWave(r, theta, arms, tightness) {
+        return armDensity(r, theta, arms, tightness);
+    }
+
+    function project(x, y, z, cosA, sinA) {
+        const xr = x * cosA - y * sinA;
+        const yr = x * sinA + y * cosA;
+        const x1 = xr * state.cosYaw + z * state.sinYaw;
+        const z1 = -xr * state.sinYaw + z * state.cosYaw;
+        const y2 = yr * state.cosTilt - z1 * state.sinTilt;
+        const z2 = yr * state.sinTilt + z1 * state.cosTilt;
+        return { x: x1, y: y2, depth: z2 };
+    }
+
+    function softBlur(source, mixOriginal) {
+        const out = document.createElement('canvas');
+        out.width = source.width;
+        out.height = source.height;
+        const octx = out.getContext('2d');
+        octx.imageSmoothingEnabled = true;
+        octx.imageSmoothingQuality = 'high';
+
+        const w2 = Math.max(1, source.width >> 1);
+        const h2 = Math.max(1, source.height >> 1);
+        const w4 = Math.max(1, source.width >> 2);
+        const h4 = Math.max(1, source.height >> 2);
+
+        const s2 = document.createElement('canvas');
+        s2.width = w2;
+        s2.height = h2;
+        s2.getContext('2d').drawImage(source, 0, 0, w2, h2);
+
+        const s4 = document.createElement('canvas');
+        s4.width = w4;
+        s4.height = h4;
+        s4.getContext('2d').drawImage(s2, 0, 0, w4, h4);
+
+        octx.globalAlpha = 1;
+        octx.drawImage(s4, 0, 0, out.width, out.height);
+        octx.globalAlpha = 0.55;
+        octx.drawImage(s2, 0, 0, out.width, out.height);
+        octx.globalAlpha = mixOriginal;
+        octx.drawImage(source, 0, 0);
+        octx.globalAlpha = 1;
+        return out;
+    }
+
+    function buildGalaxyTexture(texSize) {
+        const raw = document.createElement('canvas');
+        raw.width = texSize;
+        raw.height = texSize;
+        const ctx = raw.getContext('2d');
+        const img = ctx.createImageData(texSize, texSize);
+        const data = img.data;
+        const arms = state.options.armCount;
+        const tightness = state.options.armTightness;
+        const half = texSize * 0.5;
+        const inv = 1 / (half * 0.9);
+
+        // Lopsided / slightly barred frame (not centered perfect circle)
+        const ox = 0.055;
+        const oy = -0.03;
+        const stretchX = 1.08;
+        const stretchY = 0.9;
+
+        for (let j = 0; j < texSize; j++) {
+            for (let i = 0; i < texSize; i++) {
+                let x = (i - half) * inv;
+                let y = (j - half) * inv;
+                // warp into irregular disk coordinates
+                x = (x - ox) * stretchX;
+                y = (y - oy) * stretchY;
+                // mild azimuthal warp
+                const r0 = Math.sqrt(x * x + y * y);
+                if (r0 > 1.25) continue;
+                const th0 = Math.atan2(y, x);
+                const warp = (fbm(x * 1.8, y * 1.8) - 0.5) * 0.12;
+                const r = r0 * (1 + warp * 0.35 + (fbm(th0 * 0.8, r0 * 2) - 0.5) * 0.08);
+                const theta = th0 + (fbm(r0 * 2.2, th0) - 0.5) * 0.22;
+
+                // Smooth outer boundary (less ragged edgeN noise to prevent tattered cloth look)
+                const edgeN = fbm(x * 2.4 + 3, y * 2.4 - 1);
+                const rMax = 0.92 + edgeN * 0.07 + Math.abs(Math.sin(th0 * 2 + 0.4)) * 0.03;
+                if (r > rMax) continue;
+
+                const arm = armDensity(r, theta, arms, tightness);
+                const coreN = fbm(x * 4, y * 4);
+                const core = Math.exp(-r * r * (9.5 + coreN * 2.5));
+                const diskFall = Math.exp(-Math.pow(r / (0.78 + edgeN * 0.08), 1.55));
+                const diskN = 0.65 + 0.7 * fbm(x * 3.5, y * 3.5);
+                const disk = diskFall * diskN;
+                const outer = smoothstep(0.26, 0.78, r);
+
+                // Patchy dust (continuous ribbons, not a patchy tattered look)
+                const dustBase = armDensity(r, theta + 0.18 + (fbm(r * 3, theta) - 0.5) * 0.3, arms, tightness);
+                // Lower frequency and higher minimum bound to keep dust lanes continuous and prevent dark pits
+                const dustPatch = 0.62 + 0.38 * fbm(x * 3.2, y * 3.2);
+                // Allow dust to enter the core (suppress by 72% instead of 100%, and allow down to r=0.04)
+                const dustBand = dustBase * dustBase
+                    * dustPatch
+                    * (1 - core * 0.72)
+                    * smoothstep(0.04, 0.12, r)
+                    * (1 - smoothstep(0.7, 0.98, r));
+                // Secondary narrower dust lane for more absorptive look
+                const dustBase2 = armDensity(r, theta + 0.35 + (fbm(r * 4.2, theta) - 0.5) * 0.25, arms, tightness);
+                const narrowDust = dustBase2 * dustBase2 * dustBase2
+                    * (0.5 + 0.5 * fbm(x * 4.5, y * 4.5))
+                    * (1 - core * 0.65)
+                    * smoothstep(0.06, 0.15, r)
+                    * (1 - smoothstep(0.62, 0.88, r));
+
+                // Inter-arm haze: very faint, cool, almost void-like (real gaps are dark)
+                const haze = disk * (0.012 + 0.035 * fbm(x * 2, y * 2)) * (1 - arm * 0.55);
+
+                let light = disk * (0.02 + arm * 0.72 + core * 0.95) + haze;
+                // Gentler local mottling (lower frequency and amplitude to make gas flow smoothly like trailing arms)
+                light *= 0.9 + 0.2 * fbm(x * 3.8 + 2, y * 3.8 - 3);
+                // Stronger dust absorption + narrow lane (reference-style dark lanes)
+                light *= 1 - Math.min(0.97, dustBand * 1.05 + narrowDust * 1.25);
+
+                if (light < 0.003 && dustBand < 0.12) continue;
+
+                // HII regions: pinkish star-forming knots along arms
+                let hii = 0;
+                if (r > 0.16 && r < 0.74 && arm > 0.18) {
+                    const hiiNoise = fbm(x * 14 + 5, y * 14 + 2);
+                    const hiiClump = fbm(x * 6 + 1, y * 6 + 3);
+                    hii = Math.pow(arm * hiiClump * (0.35 + 0.65 * hiiNoise), 1.9)
+                        * smoothstep(0.16, 0.26, r)
+                        * (1 - smoothstep(0.62, 0.78, r))
+                        * (1 - core);
+                }
+
+                let cr; let cg; let cb; let ca;
+                const mott = fbm(x * 5, y * 5);
+
+                if (dustBand > 0.28) {
+                    const t = clamp(dustBand * (0.7 + mott * 0.5), 0, 1);
+                    // Dust lanes should be extremely dark (almost black) to act as a silhouette,
+                    // absorbing background lights and stars, instead of being a bright brown-red glow
+                    cr = Math.round(lerp(8, 15, t));
+                    cg = Math.round(lerp(6, 12, t));
+                    cb = Math.round(lerp(10, 18, t));
+                    ca = (0.22 + t * 0.35) * disk * 175;
+                } else {
+                    // Compute disk color first (inner or outer)
+                    let crDisk, cgDisk, cbDisk, caDisk;
+                    if (outer > 0.4) {
+                        // Outer arms: blend from soft blue-violet to highly saturated cyan closer to the edge
+                        // Shrink cyan range: only start cyan shift at the outer 35% of the disk
+                        const cyanMix = smoothstep(0.65, 0.98, outer);
+                        
+                        // Blue-violet base for inner-outer transition (make it rich blue-violet)
+                        const bvR = Math.round(lerp(100, 60, arm));
+                        const bvG = Math.round(lerp(80, 110, arm));
+                        const bvB = Math.round(lerp(220, 250, arm));
+                        
+                        // Saturated cyan for outer edge (adjusted to be more blue-ish/ice-blue)
+                        const cyR = 15;
+                        const cyG = 135;
+                        const cyB = 255;
+                        
+                        crDisk = Math.round(lerp(bvR, cyR, cyanMix));
+                        cgDisk = Math.round(lerp(bvG, cyG, cyanMix));
+                        cbDisk = Math.round(lerp(bvB, cyB, cyanMix));
+                        caDisk = light * 230 * smoothstep(0.05, 0.3, arm);
+                    } else {
+                        // Inner disk: violet-purple arms, deep blue-violet gaps/transitions
+                        const armMix = smoothstep(0.1, 0.38, arm);
+                        const baseT = (1 - outer) * (0.25 + arm * 0.75) * (0.7 + mott * 0.4);
+                        const t = baseT * (0.45 + 0.55 * armMix);
+                        // Violet-purple arm core (shifted away from pink to purple); deep blue-violet gaps
+                        const warmR = Math.round(lerp(150, 185, t));
+                        const warmG = Math.round(lerp(90, 125, t));
+                        const warmB = Math.round(lerp(210, 245, t));
+                        const coolR = Math.round(lerp(40, 90, t));
+                        const coolG = Math.round(lerp(45, 100, t));
+                        const coolB = Math.round(lerp(160, 220, t));
+                        crDisk = Math.round(lerp(coolR, warmR, armMix));
+                        cgDisk = Math.round(lerp(coolG, warmG, armMix));
+                        cbDisk = Math.round(lerp(coolB, warmB, armMix));
+                        caDisk = light * 195 * smoothstep(0.05, 0.3, arm + core);
+                    }
+
+                    // Smoothly blend in the core bulge color based on core density
+                    // (prevents hard threshold boundary between core and arms)
+                    const coreMix = smoothstep(0.06, 0.45, core);
+                    if (coreMix > 0.0) {
+                        const tCore = clamp(core * (0.85 + mott * 0.3), 0, 1);
+                        const coreR = 255;
+                        const coreG = Math.round(lerp(210, 250, tCore));
+                        const coreB = Math.round(lerp(180, 235, tCore));
+                        const coreA = light * 245 * (0.5 + tCore * 0.35);
+
+                        cr = Math.round(lerp(crDisk, coreR, coreMix));
+                        cg = Math.round(lerp(cgDisk, coreG, coreMix));
+                        cb = Math.round(lerp(cbDisk, coreB, coreMix));
+                        ca = lerp(caDisk, coreA, coreMix);
+                    } else {
+                        cr = crDisk;
+                        cg = cgDisk;
+                        cb = cbDisk;
+                        ca = caDisk;
+                    }
+                }
+
+                // Blend in HII purple (shifted further away from hot pink towards violet)
+                if (hii > 0.03) {
+                    const h = clamp(hii * 1.6, 0, 1);
+                    cr = lerp(cr, 175, h * 0.65);
+                    cg = lerp(cg, 105, h * 0.6);
+                    cb = lerp(cb, 240, h * 0.5);
+                    ca = lerp(ca, 245, h * 0.45);
+                }
+
+                const edge = 1 - smoothstep(rMax * 0.72, rMax, r);
+                ca *= edge * edge;
+
+                const idx = (j * texSize + i) * 4;
+                data[idx] = clamp(cr | 0, 0, 255);
+                data[idx + 1] = clamp(cg | 0, 0, 255);
+                data[idx + 2] = clamp(cb | 0, 0, 255);
+                data[idx + 3] = clamp(ca | 0, 0, 255);
+            }
+        }
+
+        ctx.putImageData(img, 0, 0);
+        // Preserve arm structure and color contrast.
+        const soft = softBlur(raw, 0.35);
+        return softBlur(soft, 0.48);
+    }
+
+    function buildParticles(count) {
+        const rand = mulberry32(0xc0a1a);
+        const arms = state.options.armCount;
+        const tightness = state.options.armTightness;
+        const particles = [];
+        let attempts = 0;
+        const maxAttempts = count * 18;
+
+        while (particles.length < count && attempts < maxAttempts) {
+            attempts++;
+            // Mild lopsided sampling
+            const r = Math.pow(rand(), 0.48 + rand() * 0.08) * (0.95 + rand() * 0.12);
+            const theta = rand() * Math.PI * 2 + (rand() - 0.5) * 0.15;
+            const arm = armDensity(r, theta, arms, tightness);
+            const core = Math.exp(-r * r * (8 + rand() * 3));
+            // Much more aggressive rejection sampling: stars concentrate heavily on arms and core, leaving gaps empty
+            const accept = 0.008 + Math.pow(arm, 2.5) * 0.85 + core * 0.4 + rand() * 0.01;
+            if (rand() > accept) continue;
+
+            // Warped thickness — not a flat sheet
+            const zSpread = (0.01 + 0.014 * (1 - r)) * (0.7 + arm * 0.6 + rand() * 0.4);
+            const zWarp = (fbm(r * 3, theta) - 0.5) * 0.012;
+            const z = (rand() + rand() + rand() - 1.5) * zSpread + zWarp;
+
+            const inCore = r < 0.14;
+            const outer = r > 0.5;
+            let size = 0.35 + rand() * 0.85;
+            let brightness = 0.22 + rand() * 0.4;
+            let cr; let cg; let cb;
+            let kind = 'disk';
+
+            if (inCore) {
+                kind = 'core';
+                size = 0.6 + rand() * 1.3;
+                brightness = 0.55 + rand() * 0.4;
+                cr = 255;
+                cg = Math.round(lerp(215, 248, rand()));
+                cb = Math.round(lerp(170, 220, rand()));
+            } else if (outer && arm > 0.4) {
+                kind = 'arm-blue';
+                size = 0.4 + rand() * 1.0;
+                brightness = 0.35 + rand() * 0.45;
+                cr = Math.round(lerp(145, 205, rand()));
+                cg = Math.round(lerp(170, 225, rand()));
+                cb = 255;
+            } else if (arm > 0.4) {
+                kind = 'arm';
+                size = 0.4 + rand() * 0.9;
+                brightness = 0.3 + rand() * 0.4;
+                // Inner arm: warm cream-white; outer arm within this branch: bluer
+                const warm = smoothstep(0.14, 0.48, r);
+                cr = Math.round(lerp(235, 255, warm));
+                cg = Math.round(lerp(200, 238, warm));
+                cb = Math.round(lerp(185, 220, warm));
+                cr = Math.round(lerp(cr, 160 + rand() * 50, 1 - warm));
+                cg = Math.round(lerp(cg, 175 + rand() * 40, 1 - warm));
+                cb = Math.round(lerp(cb, 235 + rand() * 20, 1 - warm));
+            } else {
+                kind = 'halo';
+                size = 0.25 + rand() * 0.5;
+                brightness = 0.1 + rand() * 0.22;
+                cr = Math.round(lerp(120, 170, rand()));
+                cg = Math.round(lerp(130, 180, rand()));
+                cb = Math.round(lerp(180, 230, rand()));
+            }
+
+            if (rand() < 0.007) {
+                kind = 'bright';
+                size *= 2;
+                brightness = Math.min(1, brightness + 0.3);
+            }
+
+            particles.push({
+                r: r,
+                theta0: theta,
+                z: z,
+                size: size,
+                brightness: brightness,
+                cr: cr,
+                cg: cg,
+                cb: cb,
+                kind: kind
+            });
+        }
+        return particles;
+    }
+
+    function buildFieldStars(count) {
+        const rand = mulberry32(0x5eed);
+        const stars = [];
+        const bright = [];
+        for (let i = 0; i < count; i++) {
+            // Hierarchy: many faint, few medium, rare bright
+            const roll = rand();
+            let size; let a;
+            if (roll < 0.72) {
+                size = 0.25 + rand() * 0.45;
+                a = 0.12 + rand() * 0.28;
+            } else if (roll < 0.94) {
+                size = 0.45 + rand() * 0.7;
+                a = 0.28 + rand() * 0.35;
+            } else {
+                size = 0.9 + rand() * 1.2;
+                a = 0.5 + rand() * 0.4;
+            }
+            const star = {
+                x: rand(),
+                y: rand(),
+                size: size,
+                a: a,
+                tw: rand() * Math.PI * 2,
+                cr: Math.round(lerp(190, 255, rand())),
+                cg: Math.round(lerp(200, 255, rand())),
+                cb: 255
+            };
+            stars.push(star);
+            if (size > 1.05 && a > 0.55) bright.push(star);
+        }
+        return { stars: stars, bright: bright };
+    }
+
+    // Sparse stellar halo around the galaxy — old Population-II-like stars
+    function buildHaloStars(count) {
+        const rand = mulberry32(0x7a10);
+        const stars = [];
+        const bright = [];
+        for (let i = 0; i < count; i++) {
+            const roll = rand();
+            let size; let a;
+            if (roll < 0.85) {
+                size = 0.22 + rand() * 0.42;
+                a = 0.05 + rand() * 0.12;
+            } else {
+                size = 0.65 + rand() * 0.95;
+                a = 0.18 + rand() * 0.25;
+            }
+            // Spherical distribution, flattened slightly
+            const r = Math.pow(rand(), 0.32) * 1.45 + 0.35;
+            const theta = rand() * Math.PI * 2;
+            const phi = Math.acos(2 * rand() - 1);
+            const x = r * Math.sin(phi) * Math.cos(theta);
+            const y = r * Math.sin(phi) * Math.sin(theta);
+            const z = r * Math.cos(phi) * 0.55;
+            const star = {
+                x: x,
+                y: y,
+                z: z,
+                size: size,
+                a: a,
+                tw: rand() * Math.PI * 2,
+                cr: Math.round(lerp(220, 255, rand())),
+                cg: Math.round(lerp(210, 250, rand())),
+                cb: Math.round(lerp(170, 225, rand()))
+            };
+            stars.push(star);
+            if (size > 0.85 && a > 0.2) bright.push(star);
+        }
+        return { stars: stars, bright: bright };
+    }
+
+    function ensureAssets() {
+        if (state.texture) return;
+        const area = state.cssW * state.cssH;
+        const scale = clamp(area / (1280 * 800), 0.7, 1.3);
+        const tex = Math.round(state.options.textureSize * clamp(scale, 0.85, 1.1));
+        state.texture = buildGalaxyTexture(tex);
+        state.particles = buildParticles(Math.round(state.options.particleCount * scale));
+        state.projected = new Array(state.particles.length);
+        for (let i = 0; i < state.projected.length; i++) {
+            state.projected[i] = {};
+        }
+        const field = buildFieldStars(Math.round(state.options.fieldStarCount * scale));
+        state.fieldStars = field.stars;
+        state.brightField = field.bright;
+        const halo = buildHaloStars(Math.round(260 * scale));
+        state.haloStars = halo.stars;
+        state.brightHalo = halo.bright;
+        state.scale = Math.min(state.cssW, state.cssH) * state.options.scaleFactor;
+    }
+
+    function invalidateAssets() {
+        state.texture = null;
+        state.particles = null;
+        state.projected = null;
+        state.fieldStars = null;
+        state.brightField = null;
+        state.haloStars = null;
+        state.brightHalo = null;
+    }
+
+    function resize() {
+        if (!state.canvas) return;
+        const cssW = global.innerWidth;
+        const cssH = global.innerHeight;
+        const dpr = Math.min(global.devicePixelRatio || 1, state.options.dprCap);
+        state.cssW = cssW;
+        state.cssH = cssH;
+        state.dpr = dpr;
+        state.canvas.width = Math.round(cssW * dpr);
+        state.canvas.height = Math.round(cssH * dpr);
+        state.canvas.style.width = cssW + 'px';
+        state.canvas.style.height = cssH + 'px';
+        state.ctx = state.canvas.getContext('2d');
+        invalidateAssets();
+        ensureAssets();
+    }
+
+    function needsResize() {
+        if (!state.canvas || !state.ctx || !state.texture) return true;
+        const cssW = global.innerWidth;
+        const cssH = global.innerHeight;
+        const dpr = Math.min(global.devicePixelRatio || 1, state.options.dprCap);
+        return state.cssW !== cssW
+            || state.cssH !== cssH
+            || state.dpr !== dpr
+            || state.canvas.width !== Math.round(cssW * dpr)
+            || state.canvas.height !== Math.round(cssH * dpr);
+    }
+
+    function softRadial(ctx, x, y, r1, stops) {
+        const g = ctx.createRadialGradient(x, y, 0, x, y, r1);
+        for (let i = 0; i < stops.length; i++) {
+            g.addColorStop(stops[i][0], stops[i][1]);
+        }
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(x, y, r1, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    function softEllipse(ctx, x, y, rx, ry, rot, stops) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rot);
+        ctx.scale(1, ry / Math.max(rx, 0.001));
+        softRadial(ctx, 0, 0, rx, stops);
+        ctx.restore();
+    }
+
+    function drawSpike(ctx, x, y, len, alpha) {
+        if (alpha < 0.025) return;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = 'rgba(230, 240, 255, ' + alpha + ')';
+        ctx.lineWidth = 0.4;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(x - len, y);
+        ctx.lineTo(x + len, y);
+        ctx.moveTo(x, y - len);
+        ctx.lineTo(x, y + len);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    function drawSpaceGradient(ctx, w, h) {
+        const R = Math.max(w, h) * 0.9;
+        const g = ctx.createRadialGradient(w * 0.5, h * 0.48, 0, w * 0.5, h * 0.5, R);
+        g.addColorStop(0, 'rgba(18, 24, 55, 0.22)');
+        g.addColorStop(0.4, 'rgba(10, 14, 36, 0.1)');
+        g.addColorStop(0.75, 'rgba(5, 8, 22, 0.04)');
+        g.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, w, h);
+    }
+
+    function drawField(ctx, w, h, ts) {
+        const stars = state.fieldStars;
+        for (let i = 0; i < stars.length; i++) {
+            const st = stars[i];
+            const tw = 0.88 + 0.12 * Math.sin(ts * 0.0009 + st.tw);
+            const a = st.a * tw * 0.4;
+            ctx.beginPath();
+            ctx.fillStyle = 'rgba(' + st.cr + ',' + st.cg + ',' + st.cb + ',' + a + ')';
+            ctx.arc(st.x * w, st.y * h, st.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        const bright = state.brightField;
+        for (let i = 0; i < bright.length; i++) {
+            const st = bright[i];
+            const tw = 0.9 + 0.1 * Math.sin(ts * 0.0007 + st.tw);
+            const x = st.x * w;
+            const y = st.y * h;
+            softRadial(ctx, x, y, st.size * 7, [
+                [0, 'rgba(255,255,255,' + (0.32 * tw) + ')'],
+                [0.15, 'rgba(220,230,255,' + (0.14 * tw) + ')'],
+                [0.45, 'rgba(160,180,255,' + (0.045 * tw) + ')'],
+                [1, 'rgba(80,100,180,0)']
+            ]);
+            drawSpike(ctx, x, y, st.size * 6.5, 0.14 * tw);
+        }
+    }
+
+    function drawHalo(ctx, cx, cy, s, ts) {
+        if (!state.haloStars) return;
+        const stars = state.haloStars;
+        const bright = state.brightHalo;
+        // Project faint halo stars using fixed in-plane angle (halo doesn't co-rotate with disk)
+        for (let i = 0; i < stars.length; i++) {
+            const st = stars[i];
+            const pr = project(st.x, st.y, st.z, 1, 0);
+            const x = cx + pr.x * s;
+            const y = cy + pr.y * s * 0.9;
+            const tw = 0.92 + 0.08 * Math.sin(ts * 0.0005 + st.tw);
+            const a = st.a * tw * 0.35;
+            ctx.beginPath();
+            ctx.fillStyle = 'rgba(' + st.cr + ',' + st.cg + ',' + st.cb + ',' + a + ')';
+            ctx.arc(x, y, st.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        for (let i = 0; i < bright.length; i++) {
+            const st = bright[i];
+            const pr = project(st.x, st.y, st.z, 1, 0);
+            const x = cx + pr.x * s;
+            const y = cy + pr.y * s * 0.9;
+            const tw = 0.9 + 0.1 * Math.sin(ts * 0.0004 + st.tw);
+            softRadial(ctx, x, y, st.size * 5, [
+                [0, 'rgba(255,245,220,' + (0.14 * tw) + ')'],
+                [0.18, 'rgba(240,220,190,' + (0.06 * tw) + ')'],
+                [0.5, 'rgba(180,160,140,' + (0.018 * tw) + ')'],
+                [1, 'rgba(80,70,60,0)']
+            ]);
+        }
+    }
+
+    // Continuous disk: pre-rendered texture, tilted + spinning
+    function drawGalaxyDisk(ctx, cx, cy, s, angle) {
+        if (!state.texture) return;
+        const tex = state.texture;
+        // Slight off-center placement so composition isn't textbook-symmetric
+        const half = s * 1.06;
+        const ox = s * 0.02;
+        const oy = s * -0.015;
+
+        ctx.save();
+        ctx.translate(cx + ox, cy + oy);
+        ctx.rotate((state.options.yawDeg * Math.PI) / 180);
+        // Tiny non-uniform squash — less "perfect ellipse"
+        ctx.scale(1.02, state.squashY * 0.98);
+        ctx.rotate(angle);
+        ctx.globalAlpha = 0.88;
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(tex, -half, -half, half * 2, half * 2);
+
+        // Very soft extended veil, offset so it doesn't read as a second hard rim
+        ctx.globalAlpha = 0.16;
+        ctx.drawImage(tex, -half * 1.1 + s * 0.02, -half * 1.08 - s * 0.01, half * 2.2, half * 2.16);
+        ctx.restore();
+    }
+
+    function drawBulge(ctx, cx, cy, s, cosA, sinA) {
+        // Nucleus slightly off geometric center (real bulges aren't perfect)
+        const p = project(0.035, -0.02, 0.002, cosA, sinA);
+        const bx = cx + p.x * s;
+        const by = cy + p.y * s * 0.9;
+        const rx = s * 0.29;
+        const ry = s * 0.094 * (0.85 + state.squashY * 0.4);
+        const barRot = (state.options.yawDeg * Math.PI) / 180;
+
+        // The bulge must co-rotate with the disk pattern. We draw it in a
+        // local coordinate system centered on the nucleus, rotated by the
+        // in-plane disk angle so the bar/lobes spin with the arms.
+        ctx.save();
+        ctx.translate(bx, by);
+        ctx.rotate(state.angle);
+        ctx.translate(-bx, -by);
+
+        // Boxy peanut bar along the line of nodes (Andromeda-like pseudo-bar)
+        // Main bar: elongated warm glow (brighter core)
+        softEllipse(ctx, bx, by, s * 0.34, s * 0.072, barRot, [
+            [0, 'rgba(255, 242, 220, 0.16)'], // warm white
+            [0.22, 'rgba(255, 215, 170, 0.082)'], // warm yellow-orange
+            [0.52, 'rgba(240, 170, 140, 0.034)'], // warm rose-orange
+            [0.82, 'rgba(150, 100, 130, 0.009)'], // faint purple-gray
+            [1, 'rgba(55, 50, 75, 0)']
+        ]);
+        // Peanut side lobes
+        const barLobeSep = s * 0.10;
+        const brx = s * 0.13;
+        const bry = s * 0.07;
+        const bcos = Math.cos(barRot);
+        const bsin = Math.sin(barRot);
+        const lobe1x = bx + barLobeSep * bcos;
+        const lobe1y = by + barLobeSep * bsin;
+        const lobe2x = bx - barLobeSep * bcos;
+        const lobe2y = by - barLobeSep * bsin;
+        softEllipse(ctx, lobe1x, lobe1y, brx, bry, barRot, [
+            [0, 'rgba(255, 230, 195, 0.08)'],
+            [0.3, 'rgba(240, 190, 150, 0.035)'],
+            [0.7, 'rgba(180, 120, 130, 0.010)'],
+            [1, 'rgba(60, 50, 80, 0)']
+        ]);
+        softEllipse(ctx, lobe2x, lobe2y, brx, bry, barRot, [
+            [0, 'rgba(255, 230, 195, 0.08)'],
+            [0.3, 'rgba(240, 190, 150, 0.035)'],
+            [0.7, 'rgba(180, 120, 130, 0.010)'],
+            [1, 'rgba(60, 50, 80, 0)']
+        ]);
+
+        // Irregular multi-lobe bloom instead of one clean ellipse lamp
+        const lobes = [
+            { dx: 0, dy: 0, sx: 1, sy: 1, rot: -0.32, a: 1 },
+            { dx: 0.04, dy: -0.02, sx: 0.7, sy: 0.85, rot: 0.5, a: 0.45 },
+            { dx: -0.03, dy: 0.025, sx: 0.55, sy: 0.7, rot: -1.1, a: 0.35 }
+        ];
+
+        for (let i = 0; i < lobes.length; i++) {
+            const L = lobes[i];
+            softEllipse(
+                ctx,
+                bx + L.dx * s,
+                by + L.dy * s,
+                rx * 2.4 * L.sx,
+                ry * 2.6 * L.sy,
+                L.rot,
+                [
+                    [0, 'rgba(255, 235, 205, ' + (0.055 * L.a) + ')'],
+                    [0.25, 'rgba(255, 195, 155, ' + (0.028 * L.a) + ')'],
+                    [0.55, 'rgba(195, 135, 155, ' + (0.012 * L.a) + ')'],
+                    [0.82, 'rgba(110, 80, 130, ' + (0.004 * L.a) + ')'],
+                    [1, 'rgba(40, 40, 75, 0)']
+                ]
+            );
+        }
+
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        softEllipse(ctx, bx, by, rx * 1.25, ry * 1.35, -0.28, [
+            [0, 'rgba(255, 248, 230, 0.24)'],
+            [0.2, 'rgba(255, 225, 185, 0.12)'],
+            [0.5, 'rgba(250, 180, 140, 0.042)'],
+            [0.78, 'rgba(210, 125, 110, 0.012)'],
+            [1, 'rgba(110, 70, 70, 0)']
+        ]);
+        softEllipse(ctx, bx + s * 0.01, by - s * 0.005, rx * 0.42, ry * 0.45, -0.2, [
+            [0, 'rgba(255, 252, 245, 0.38)'],
+            [0.3, 'rgba(255, 238, 205, 0.16)'],
+            [0.65, 'rgba(255, 205, 160, 0.04)'],
+            [1, 'rgba(230, 165, 120, 0)']
+        ]);
+        ctx.restore();
+
+        ctx.restore();
+    }
+
+    function frame(ts) {
+        if (!state.running || !state.ctx || !state.texture) {
+            state.raf = 0;
+            return;
+        }
+
+        const frameInterval = 1000 / state.options.targetFps;
+        if (state.lastTs && ts - state.lastTs < frameInterval - 1) {
+            state.raf = global.requestAnimationFrame(frame);
+            return;
+        }
+
+        const dt = state.lastTs ? Math.min(0.05, (ts - state.lastTs) / 1000) : 0;
+        state.lastTs = ts;
+        state.angle += (Math.PI * 2 / state.options.rotationPeriodSec) * dt;
+
+        const ctx = state.ctx;
+        const dpr = state.dpr;
+        const w = state.cssW;
+        const h = state.cssH;
+        const cx = w * 0.5;
+        const cy = h * 0.52;
+        const s = state.scale;
+        const cosA = Math.cos(state.angle);
+        const sinA = Math.sin(state.angle);
+        const particles = state.particles;
+
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, w, h);
+
+        drawSpaceGradient(ctx, w, h);
+        drawField(ctx, w, h, ts);
+        drawHalo(ctx, cx, cy, s, ts);
+        drawBulge(ctx, cx, cy, s, cosA, sinA);
+        drawGalaxyDisk(ctx, cx, cy, s, state.angle);
+
+        // Sparkle layer: depth-sorted particles (near side slightly larger)
+        const projected = state.projected;
+        for (let i = 0; i < particles.length; i++) {
+            const p = particles[i];
+            const x = Math.cos(p.theta0) * p.r;
+            const y = Math.sin(p.theta0) * p.r;
+            const pr = project(x, y, p.z, cosA, sinA);
+            const out = projected[i];
+            out.sx = cx + pr.x * s;
+            out.sy = cy + pr.y * s * 0.9;
+            out.depth = pr.depth;
+            out.size = p.size;
+            out.brightness = p.brightness;
+            out.cr = p.cr;
+            out.cg = p.cg;
+            out.cb = p.cb;
+            out.kind = p.kind;
+            out.zAbs = Math.abs(p.z);
+        }
+
+        projected.sort(function (a, b) {
+            return a.depth - b.depth;
+        });
+
+        for (let i = 0; i < projected.length; i++) {
+            const p = projected[i];
+            if (p.sx < -40 || p.sy < -40 || p.sx > w + 40 || p.sy > h + 40) continue;
+
+            const depthFade = clamp(0.72 + p.depth * 0.45, 0.36, 1.2);
+            // Near-side thickness cue
+            const thick = 1 + p.zAbs * 8;
+            const alpha = clamp(p.brightness * depthFade * 0.75, 0.03, 0.9);
+            const radius = p.size * (0.6 + depthFade * 0.5) * thick;
+
+            if (p.kind === 'bright' || p.kind === 'core') {
+                softRadial(ctx, p.sx, p.sy, radius * 5, [
+                    [0, 'rgba(' + p.cr + ',' + p.cg + ',' + p.cb + ',' + (alpha * 0.32) + ')'],
+                    [0.25, 'rgba(' + p.cr + ',' + p.cg + ',' + p.cb + ',' + (alpha * 0.12) + ')'],
+                    [0.6, 'rgba(' + p.cr + ',' + p.cg + ',' + p.cb + ',' + (alpha * 0.035) + ')'],
+                    [1, 'rgba(' + p.cr + ',' + p.cg + ',' + p.cb + ',0)']
+                ]);
+                if (p.kind === 'bright') {
+                    drawSpike(ctx, p.sx, p.sy, radius * 3.2, alpha * 0.35);
+                }
+            }
+
+            ctx.beginPath();
+            ctx.fillStyle = 'rgba(' + p.cr + ',' + p.cg + ',' + p.cb + ',' + alpha + ')';
+            ctx.arc(p.sx, p.sy, radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        state.raf = global.requestAnimationFrame(frame);
+    }
+
+    function canAnimate() {
+        return !prefersReducedMotion() && document.visibilityState === 'visible';
+    }
+
+    function startLoop() {
+        if (!state.canvas || state.running || !state.wantRun || !canAnimate()) return;
+        if (needsResize()) resize();
+        state.running = true;
+        state.lastTs = 0;
+        if (!state.raf) {
+            state.raf = global.requestAnimationFrame(frame);
+        }
+    }
+
+    function stopLoop(clear) {
+        state.running = false;
+        state.lastTs = 0;
+        if (state.raf) {
+            global.cancelAnimationFrame(state.raf);
+            state.raf = 0;
+        }
+        if (clear && state.ctx && state.canvas) {
+            state.ctx.setTransform(1, 0, 0, 1, 0, 0);
+            state.ctx.clearRect(0, 0, state.canvas.width, state.canvas.height);
+        }
+    }
+
+    function syncRuntime() {
+        if (state.wantRun && canAnimate()) {
+            startLoop();
+        } else {
+            stopLoop(true);
+        }
+    }
+
+    function onResize() {
+        global.clearTimeout(state.resizeTimer);
+        state.resizeTimer = global.setTimeout(function () {
+            if (!state.canvas) return;
+            if (state.running) {
+                if (needsResize()) resize();
+            } else if (state.wantRun && canAnimate()) {
+                startLoop();
+            }
+        }, 120);
+    }
+
+    function resolveCanvas(target) {
+        if (!target) return null;
+        if (typeof target === 'string') return document.querySelector(target);
+        if (target && target.tagName === 'CANVAS') return target;
+        return null;
+    }
+
+    function bindListeners() {
+        if (state.listenersBound) return;
+        global.addEventListener('resize', onResize);
+        document.addEventListener('visibilitychange', syncRuntime);
+        getMotionQuery().addEventListener('change', syncRuntime);
+        state.listenersBound = true;
+    }
+
+    function unbindListeners() {
+        if (!state.listenersBound) return;
+        global.removeEventListener('resize', onResize);
+        document.removeEventListener('visibilitychange', syncRuntime);
+        getMotionQuery().removeEventListener('change', syncRuntime);
+        state.listenersBound = false;
+    }
+
+    const api = {
+        init: function (target, options) {
+            const canvas = resolveCanvas(target);
+            if (!canvas) return false;
+            const shouldResume = state.wantRun;
+            stopLoop(true);
+            state.canvas = canvas;
+            state.ctx = null;
+            state.options = Object.assign({}, DEFAULTS, options || {});
+            updateViewMatrix();
+            invalidateAssets();
+            bindListeners();
+            if (shouldResume) syncRuntime();
+            return true;
+        },
+
+        start: function () {
+            state.wantRun = true;
+            syncRuntime();
+        },
+
+        stop: function () {
+            state.wantRun = false;
+            stopLoop(true);
+        },
+
+        isRunning: function () {
+            return state.running;
+        },
+
+        destroy: function () {
+            state.wantRun = false;
+            stopLoop(true);
+            unbindListeners();
+            global.clearTimeout(state.resizeTimer);
+            state.resizeTimer = 0;
+            state.motionQuery = null;
+            state.canvas = null;
+            state.ctx = null;
+            invalidateAssets();
+        }
+    };
+
+    global.StarfieldBackground = api;
+})(typeof window !== 'undefined' ? window : this);

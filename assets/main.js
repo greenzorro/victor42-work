@@ -3,7 +3,7 @@
  * Project: victor42-work
  * Author: Victor Cheng
  * Email: hi@victor42.work
- * Description: Product showcase — data-driven render, bilingual UI, theme & background video
+ * Description: Product showcase — data-driven render, bilingual UI, theme toggle
  */
 
 const SITE_ORIGIN = 'https://work.victor42.work';
@@ -33,14 +33,13 @@ const UI_TEXT = {
 
 let currentData = null;
 let currentLanguage = 'zh';
-let videoSourcesAttached = false;
 
 document.addEventListener('DOMContentLoaded', function() {
     initializeLanguage();
     bindThemeControls();
     syncThemeIcon();
     loadProducts();
-    initializeBackgroundVideo();
+    initStarfield();
 });
 
 function initializeLanguage() {
@@ -378,36 +377,23 @@ function createProductCard(product, cardSize) {
     return card;
 }
 
-function prefersReducedMotion() {
-    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function isDarkTheme() {
+    return document.documentElement.getAttribute('data-theme') === 'dark';
 }
 
-function ensureVideoSources(video) {
-    if (videoSourcesAttached || !video) return;
-    const webm = document.createElement('source');
-    webm.src = 'assets/images/milky-way.webm';
-    webm.type = 'video/webm';
-    const mp4 = document.createElement('source');
-    mp4.src = 'assets/images/milky-way.mp4';
-    mp4.type = 'video/mp4';
-    video.append(webm, mp4);
-    videoSourcesAttached = true;
-    video.load();
+function syncStarfield() {
+    if (typeof StarfieldBackground === 'undefined') return;
+    if (isDarkTheme()) {
+        StarfieldBackground.start();
+    } else {
+        StarfieldBackground.stop();
+    }
 }
 
-function playBackgroundVideo() {
-    const video = document.getElementById('background-video');
-    if (!video || prefersReducedMotion()) return;
-    ensureVideoSources(video);
-    video.play().catch((error) => {
-        console.log('背景视频播放失败:', error);
-    });
-}
-
-function pauseBackgroundVideo() {
-    const video = document.getElementById('background-video');
-    if (!video) return;
-    video.pause();
+function initStarfield() {
+    if (typeof StarfieldBackground === 'undefined') return;
+    StarfieldBackground.init('#background-canvas');
+    syncStarfield();
 }
 
 function bindThemeControls() {
@@ -436,13 +422,12 @@ function applyTheme(theme) {
 
     if (theme === 'dark') {
         html.setAttribute('data-theme', 'dark');
-        playBackgroundVideo();
     } else {
         html.removeAttribute('data-theme');
-        pauseBackgroundVideo();
     }
 
     syncThemeIcon();
+    syncStarfield();
 }
 
 function toggleTheme() {
@@ -450,19 +435,4 @@ function toggleTheme() {
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     applyTheme(newTheme);
     localStorage.setItem('theme', newTheme);
-}
-
-function initializeBackgroundVideo() {
-    const video = document.getElementById('background-video');
-    if (!video) return;
-
-    video.addEventListener('error', function() {
-        console.log('背景视频加载失败，使用纯色背景');
-        video.style.display = 'none';
-    });
-
-    const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
-    if (isDarkMode && !prefersReducedMotion()) {
-        playBackgroundVideo();
-    }
 }
