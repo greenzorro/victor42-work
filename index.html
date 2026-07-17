@@ -50,7 +50,7 @@
     gtag('config', 'G-14SGRFWENB');
     </script>
 
-    <!-- Structured Data (JSON-LD) — products list filled by main.js after data load -->
+    <!-- Structured Data (JSON-LD); product list filled by main.js after data load -->
     <script type="application/ld+json" id="structured-data">
     {
       "@context": "https://schema.org",
@@ -74,13 +74,13 @@
       },
       "inLanguage": "zh-CN",
       "copyrightYear": "2011",
-      "dateModified": "2026-07-13"
+      "dateModified": "2026-07-16"
     }
     </script>
 
-    <link rel="stylesheet" href="./assets/style.css?v=4">
+    <link rel="stylesheet" href="./assets/style.css?v=5">
 
-    <!-- 主题初始化 - 避免 FOUC -->
+    <!-- Apply saved/system theme before paint (avoid FOUC) -->
     <script>
     (function() {
         const savedTheme = localStorage.getItem('theme');
@@ -93,7 +93,6 @@
     </script>
 </head>
   <body>
-      <!-- 深色模式背景视频：默认不预加载，由 JS 在 dark 模式时挂载 -->
       <video class="background-video" id="background-video" muted loop playsinline preload="none" aria-hidden="true"></video>
 
       <button class="theme-toggle" id="theme-toggle" aria-label="切换深色模式" type="button">
@@ -136,6 +135,6 @@
         </main>
     </div>
 
-    <script src="assets/main.js?v=3"></script>
+    <script src="assets/main.js?v=5"></script>
     </body>
 </html>

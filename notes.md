@@ -2,201 +2,160 @@
 
 ## 1. 目的
 
-本文档旨在详细记录 `projects/victor42-work` 目录下的“小玩意”项目，为本项目的未来开发和维护提供便利。
+记录 `projects/victor42-work`（线上 https://work.victor42.work/）的结构与维护约定，供本人与 Agent 后续改站时对齐。
 
-**重要提示：** 每次新增或修改功能后，请务必更新此备忘录，确保文档的准确性和时效性。
+**约定：** 改功能或数据结构后，同步更新本文；以仓库现状为准，不以记忆或旧 commit 为准。
 
 ## 2. 项目概述
 
-本小玩意项目是一个静态HTML页面，通过JavaScript动态加载并渲染一个包含个人简介和作品集的产品展示页面。页面设计为响应式，适配PC、平板和移动设备。
+静态产品展示页：用 JSON 驱动个人简介与作品列表，支持中英切换与深/浅色主题。无构建步骤，适合 Cloudflare Pages 等静态托管。
 
 ### 2.1 技术栈
 
-- **HTML5**: 页面结构，语义化标签，静态视频元素
-- **CSS3**: 响应式布局、CSS Grid、CSS自定义属性（变量）
-- **JavaScript (ES6 Async/Await)**: 数据加载、DOM操作、主题切换、视频控制
-- **JSON**: 存储页面标题、描述、产品数据和个人信息
-- **LocalStorage**: 保存用户主题偏好
-- **CSS Variables**: 实现深色/浅色模式的动态主题切换
-- **HTML5 Video**: 深色模式背景视频播放（MP4格式）
+- **HTML5**：页面壳、SEO meta、JSON-LD 占位、无 source 的背景 `<video>`
+- **CSS3**：响应式 Grid、CSS 变量主题、`:focus-visible`
+- **JavaScript (ES6)**：`fetch` 加载数据、DOM 渲染、语言/主题/视频控制
+- **JSON**：`data.json` 为唯一内容源（文案双语）
+- **LocalStorage**：主题 `theme`、语言 `language`
+- **HTML5 Video**：深色模式银河背景（WebM + MP4，按需挂载 source）
 
 ### 2.2 文件结构
 
-- `index.html`: 主页面文件
-- `data.json`: 存储所有动态内容的JSON数据文件
-- `assets/style.css`: 页面主要样式定义
-- `assets/main.js`: 页面主要逻辑脚本
-- `README.md`: 项目说明
-- `LICENSE`: 项目许可证
-- `notes.md`: 本备忘录
-- `robots.txt`: 爬虫指引文件
-- `sitemap.xml`: SEO网站地图
+```
+victor42-work/
+├── index.html          # 页面壳、SEO、主题 FOUC 脚本、GA
+├── data.json           # 标题 / 简介 / 作品列表（中英）
+├── assets/
+│   ├── main.js         # 加载、渲染、语言、主题、背景视频
+│   ├── style.css       # 布局与主题样式
+│   └── images/         # 头像、封面、favicon、背景视频
+├── sitemap.xml         # 仅本域可索引 URL
+├── robots.txt
+├── notes.md            # 本备忘录
+├── README.md
+└── LICENSE             # MIT
+```
 
-## 3. 功能模块与实现
+## 3. 功能模块
 
 ### 3.1 数据驱动渲染
 
-- **`data.json`**: 是唯一的数据源，定义了页面标题、描述、个人信息（头像、简介、网站链接）以及一个产品对象数组。
-- **主要功能函数**:
-    - **`loadProducts()`**: 异步获取 `data.json` 数据，并使用 `response.json()` 解析
-    - **`renderPage(data)`**: 渲染整个页面，包括标题、描述、版权信息
-    - **`renderProfile()`**: 渲染个人信息区域
-    - **`createProductCard()`**: 动态创建产品卡片
-    - **`updateThemeIcon()`**: 更新主题按钮图标状态
-    - **`applyTheme()`**: 应用主题，控制背景视频播放/暂停
-    - **`toggleTheme()`**: 切换主题并保存偏好
-    - **`initializeBackgroundVideo()`**: 初始化静态背景视频元素
-    - **错误处理**: 数据加载失败时显示友好提示
-    - **加载状态**: 显示加载动画
+- **`data.json`**：唯一内容源。`title` / `description` / `profile.*` 文案与 `products[].name|description` 均为 `{ "zh", "en" }`；`url`、`emoji`、`image`（可选）为共享字段。
+- **`getText(obj)`**：按 `currentLanguage` 取文案，缺省回退 `zh`。
+- **主流程**（`DOMContentLoaded`）：
+  1. `initializeLanguage` — URL `?lang=` > localStorage > 默认 `zh`
+  2. `bindThemeControls` + `syncThemeIcon`
+  3. `loadProducts` — `fetch('./data.json?v=YYYYMMDD')`
+  4. `initializeBackgroundVideo` — 仅 dark 且未 `prefers-reduced-motion` 时播放
+- **渲染**：`renderPage` → `renderProfile` + `createProductCard`；全部 `textContent` / `createElement`，不用 `innerHTML` 拼用户可见内容。
+- **加载失败**：显示 `#error`，隐藏 loading。
 
 ### 3.2 布局与样式
 
-- **响应式设计**: 采用移动优先的策略，设置了两个主要断点 (`640px` 和 `1180px`)，实现了三种布局模式：
-    1.  **PC端 (>1180px)**: 页面内容区固定宽度 `1180px` 居中。采用双栏布局，左侧为个人信息，右侧为产品列表。个人信息区域在滚动时会 `position: sticky` 固定在屏幕上。产品网格为4列布局。
-    2.  **中等屏幕 (640px-1180px)**: 页面内容区固定宽度 `600px` 居中。采用单栏布局，个人信息和产品列表垂直排列。产品网格为2列布局。
-    3.  **移动端 (<640px)**: 页面宽度撑满容器。采用单栏布局，产品网格为2列布局。大卡片在各种屏幕下都保持2x1横向布局。
+- **断点**
+  - `>1180px`：内容宽 1180px；左 profile sticky，右 4 列 Grid
+  - `640–1180px`：内容宽 600px；单栏，2 列 Grid
+  - `<640px`：全宽；单栏，2 列 Grid
+- **卡片**
+  - 有 `image` → `.large-card`（跨 2 列，横向图文）
+  - 无 `image` → `.small-card`（1 列）
+- **主色** `#2A9D8F`，与博客 Stack 主题一致
+- **描述卡**：背景图 `assets/images/tools.webp` + 半透明主色叠层
 
-- **产品列表**:
-    - 使用 **CSS Grid** 布局，PC端为4列，中等及移动端为2列。
-    - **卡片类型**:
-        - **大卡片 (`.large-card`)**: 用于带图片的产品，在所有屏幕尺寸下都占 `2x1` 网格，保持横向图文布局。
-        - **小卡片 (`.small-card`)**: 用于不带图片的产品，始终占 `1x1` 网格。
-    - **卡片样式**: 卡片具有圆角、阴影和悬停时的浮动效果，增强了视觉层次感。
+### 3.3 语言
 
-- **主题风格**:
-    - **配色**: 主色调为 `#2A9D8F` (青绿色)，与 `victor42.eth.limo` 博客的"Stack"主题保持一致。
-    - **描述卡片**: 页面描述信息被放置在一个特殊的卡片中，该卡片以图片为背景，并带有半透明的颜色叠加层，以确保文字的可读性。
+- 右上角语言按钮：当前为中文时显示 `EN`，为英文时显示 `中文`
+- 切换后写入 localStorage、更新 `?lang=`（`history.replaceState`）、重渲染文案与 meta
+- 壳层静态文案在 `UI_TEXT`；内容文案在 `data.json`
 
-### 3.3 交互
+### 3.4 主题与背景视频
 
-- **可点击卡片**: 整个产品卡片都是一个可点击的链接，在新标签页中打开产品URL。
-- **加载与错误状态**: 明确的加载动画和错误提示，提升了用户体验。
-- **动态页脚**: 页脚的版权年份会自动更新为当前年份，包含指向个人网站和GitHub仓库的链接。
-- **深色模式切换**: 位于页面右上角的主题切换按钮，支持浅色/深色模式切换，具有本地存储记忆功能和系统偏好自动跟随。
+- head 内联脚本读 localStorage / `prefers-color-scheme`，写 `data-theme`，避免 FOUC
+- 深色：`#18191a` 背景、半透明卡片、背景视频 opacity 0.3
+- 视频：HTML 中只有空 `<video preload="none">`；进入 dark 时再插入 webm/mp4 source 并 `play()`
+- `prefers-reduced-motion: reduce`：不播视频、弱化 transition/hover
 
-### 3.4 深色模式支持
+### 3.5 缓存与资源版本
 
-- **CSS变量架构**: 使用CSS自定义属性定义颜色变量，实现主题的快速切换。
-- **切换按钮**: 固定在右上角的圆形按钮，包含月亮/太阳图标，支持悬停和点击效果。
-- **本地存储**: 用户的主题偏好会自动保存到`localStorage`，下次访问时恢复。
-- **系统偏好**: 首次访问时自动检测用户系统的深色模式偏好。
-- **动态切换**: 点击切换按钮时，图标会旋转180度并更换，提供良好的视觉反馈。
-- **背景视频**: 深色模式时播放银河系背景视频，增强视觉体验
-    - 视频格式：WEBM、MP4，优化硬件解码支持
-    - 静态HTML元素，避免动态创建的性能开销
-    - 自动循环播放，静音模式
-    - 覆盖整个窗口，30%透明度
-    - 视频加载失败时自动回退到纯色背景
-    - 浅色模式时自动暂停，深色模式时自动播放
-- **透明卡片效果**: 深色模式下产品卡片具有透明质感
-    - 产品卡片：40%不透明度（alpha=0.4），确保内容可读性
-    - 细微边框：半透明白色边框增强层次感
-    - 背景透视：可以看到背景视频透过卡片的效果
-- **颜色变量**:
-    - 浅色模式：白色背景和深色文字
-    - 深色模式：深色背景 (`#18191a`) 和浅色文字 (`#e4e6ea`)
-    - 卡片背景：浅色模式为白色，深色模式为40%透明度的深灰色
-    - 所有颜色都通过CSS变量统一管理
-
-### 3.5 性能优化
-
-- **避免FOUC**: 在head中内联主题检测脚本，确保页面首次渲染就有正确主题
-- **静态HTML优化**: 背景视频使用静态HTML元素，避免动态创建的内存开销
-- **视频格式优化**: MP4格式，充分利用硬件解码加速
-- **初始化顺序**: 更新主题图标 → 加载内容数据 → 初始化背景视频
-- **资源管理**: 主题切换时简单的播放/暂停控制，避免元素创建销毁
-- **预加载策略**: 关键资源（CSS、JS、JSON）预加载，DNS预解析CDN域名
+- CSS / JS 用 query 版本号（`index.html` 内 `?v=`）
+- `data.json` 用 `main.js` 中 `DATA_URL` 的 `?v=YYYYMMDD`；**改产品列表时同步改该版本串**
+- 结构化数据与 sitemap 的「内容修订日」用 `SITE_DATE_MODIFIED` / sitemap `<lastmod>`，与发布日对齐，不取客户端当天
 
 ## 4. 数据结构 (`data.json`)
 
 ```json
 {
-  "title": "页面主标题",
-  "description": "页面的描述信息",
+  "title": { "zh": "...", "en": "..." },
+  "description": { "zh": "...", "en": "..." },
   "profile": {
-    "avatar": "个人头像URL",
-    "bio": "个人简介，支持HTML标签如<br>",
+    "avatar": "assets/images/....jpg",
+    "bio": { "zh": "...", "en": "..." },
     "website": {
-      "title": "个人网站链接的显示文字",
-      "url": "个人网站的完整URL"
+      "title": { "zh": "...", "en": "..." },
+      "url": "https://..."
     }
   },
   "products": [
     {
-      "emoji": "产品的Emoji图标",
-      "name": "产品名称",
-      "url": "产品链接URL",
-      "description": "产品简介",
-      "image": "产品封面图URL (可选)"
+      "emoji": "🎵",
+      "name": { "zh": "...", "en": "..." },
+      "url": "https://...",
+      "description": { "zh": "...", "en": "..." },
+      "image": "assets/images/....webp"
     }
   ]
 }
 ```
 
-## 5. SEO优化
+`image` 可选；有图为大卡，无图为小卡。
 
-### 5.1 SEO实施
+## 5. SEO
 
-- **Meta标签**: description、keywords、author、robots、canonical URL
-- **社交媒体**: Open Graph和Twitter Card标签，优化分享显示
-- **结构化数据**: JSON-LD格式，包含网站、作者、产品信息
-- **语义化HTML**: 使用main、aside、section等标签
-- **可访问性**: alt属性、aria-label标签
-- **性能优化**: 资源预加载、DNS预解析、图片懒加载
+### 5.1 页面侧
 
-### 5.2 SEO文件
+- Meta：description、keywords、robots、canonical
+- Open Graph / Twitter Card（图片为绝对 URL）
+- JSON-LD：`#structured-data` 壳在 HTML，产品列表由 `updateStructuredData` 写入
+- 语义标签：`main` / `aside` / `section`；卡片 `aria-label`、图片 `alt`
 
-- `sitemap.xml`: 网站地图
-- `robots.txt`: 爬虫指引文件
+语言切换是**到站后的 UX**，不是多语言 SEO 工程：无独立英文 URL、无 hreflang。默认与爬虫首屏以中文 meta 为准。
 
-### 5.3 Sitemap维护规则
+### 5.2 Sitemap 收录规则
 
-**重要提示：** 每当在 `data.json` 中新增产品时，必须检查是否需要更新 `sitemap.xml`。
+`sitemap.xml` **只收录本站可声明所有权的 URL**（搜索引擎会忽略跨站条目）：
 
-#### 添加标准：
-1. **必须添加** - 属于 `victor42.work` 子域名的产品：
-   - 格式：`*.*.victor42.work` 或 `*.victor42.work`
-   - 优先级：`0.8`（与现有工具同级）
-   - 更新频率：`monthly`
+| 类型 | 是否写入 sitemap | 说明 |
+|------|------------------|------|
+| `https://work.victor42.work/` | 必须 | 本页，priority `1.0` |
+| `https://*.victor42.work/` 产品子域 | 必须 | priority `0.8`，`changefreq` monthly |
+| GitHub / GitHub Pages / 飞书 / GreasyFork 等 | **不写** | 外链只在 `data.json` 卡片中出现 |
 
-2. **建议添加** - 重要的 GitHub 项目页面：
-   - 核心工具类项目（ComfyUI工作流、Excel+PS批处理等）
-   - 优先级：`0.7`
-   - 更新频率：`monthly`
+**加产品流程：**
 
-3. **不要添加** - 第三方平台页面：
-   - GreasyFork脚本页面
-   - 飞书文档、Notion页面
-   - 其他平台的外部链接
+1. 在 `data.json` 追加条目（中英文案、`url`，可选 `image`）
+2. 若 URL 为 `*.victor42.work`，在 `sitemap.xml` 增加对应 `<url>`，并刷新各条 `<lastmod>`
+3. 更新 `main.js` 的 `DATA_URL` 与 `SITE_DATE_MODIFIED`，以及 `index.html` 内 JSON-LD `dateModified`、CSS/JS 的 `?v=`
+4. 若新增封面图，放入 `assets/images/`
 
-#### 添加格式：
-```xml
-<url>
-  <loc>https://your-product.victor42.work/</loc>
-  <lastmod>当前日期</lastmod>
-  <changefreq>monthly</changefreq>
-  <priority>0.8</priority>
-</url>
-```
+### 5.3 robots.txt
 
-#### 更新流程：
-1. 在 `data.json` 中添加新产品
-2. 检查产品URL是否符合上述标准
-3. 如符合，在 `sitemap.xml` 中添加对应条目
-4. 更新所有条目的 `<lastmod>` 为当前日期
-5. 保持优先级层次结构的一致性
+允许全站抓取；声明 `Sitemap: https://work.victor42.work/sitemap.xml`。
 
 ## 6. 故障排查
 
-- **基础检查**: 确保文件路径正确、JSON数据格式有效
-- **开发者工具**: 检查Console错误、Network加载状态、Elements结构
-- **SEO验证**: 使用Google Search Console、Facebook调试工具、Twitter Card验证
-- **清除缓存**: 清除浏览器缓存解决资源更新问题
-- **深色模式问题**:
-    - 主题切换不工作：检查JavaScript控制台错误、localStorage可用性
-    - 确认CSS变量在目标浏览器中受支持（现代浏览器均支持）
-- **背景视频问题**:
-    - 视频不播放：检查浏览器自动播放策略
-    - 视频格式支持：MP4格式
-    - 验证CDN视频资源可访问性，视频加载失败时自动回退到纯色背景
-- **性能问题**: 主题切换时自动清理背景视频资源，避免内存泄漏
+- **空白 / 加载失败**：Network 看 `data.json` 是否 200；校验 JSON 语法；确认 `DATA_URL` 版本路径
+- **主题不切换**：Application → Local Storage 的 `theme`；控制台报错
+- **语言不切换**：`language` 与 URL `lang`；`data.json` 是否缺 `en` 字段（会回退中文）
+- **背景视频不播**：是否 dark 模式；系统是否「减少动态效果」；CDN/本地视频是否可访问（失败则隐藏 video，纯色底）
+- **分享图不对**：OG/Twitter 必须用绝对 URL（当前指向 `work.victor42.work`）
+- **缓存旧列表**：硬刷新；检查 `data.json?v=` 是否已 bump
+
+## 7. 本地预览
+
+任意静态服务器根目录指向本仓库即可，例如：
+
+```bash
+npx --yes serve .
+```
+
+打开提示的本地地址；改 `data.json` 后注意浏览器缓存与 `DATA_URL` 版本。

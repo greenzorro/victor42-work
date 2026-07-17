@@ -1,4 +1,4 @@
-/* CSS变量定义 - 浅色模式 */
+/* Theme tokens — light */
 :root {
     --color-primary: #2A9D8F;
     --color-primary-hover: #219789;
@@ -16,7 +16,7 @@
     --color-overlay: rgba(42, 157, 143, 0.7);
 }
 
-/* 深色模式变量 */
+/* Theme tokens — dark */
 [data-theme="dark"] {
     --color-text: #d0d3d6;
     --color-text-secondary: #b0b3b8;
@@ -56,7 +56,29 @@ a:hover {
     text-decoration: none;
 }
 
-/* 主题切换按钮 */
+:focus {
+    outline: none;
+}
+
+:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 3px;
+}
+
+.theme-toggle:focus-visible,
+.lang-toggle:focus-visible {
+    outline-offset: 4px;
+}
+
+.product-card:focus-visible {
+    outline-offset: 4px;
+    transform: translateY(-2px);
+    box-shadow:
+        0 8px 28px var(--color-card-shadow-hover),
+        0 16px 48px var(--color-card-shadow-hover);
+}
+
+/* Theme toggle */
 .theme-toggle {
     position: fixed;
     top: 20px;
@@ -94,12 +116,11 @@ a:hover {
     transition: transform 0.3s ease;
 }
 
-/* 深色模式时的图标旋转效果 */
 [data-theme="dark"] .theme-icon {
     transform: rotate(180deg);
 }
 
-/* 语言切换按钮 */
+/* Language toggle */
 .lang-toggle {
     position: fixed;
     top: 20px;
@@ -153,7 +174,7 @@ a:hover {
     line-height: 1;
 }
 
-/* 背景视频 */
+/* Background video (dark theme) */
 .background-video {
     position: fixed;
     top: 0;
@@ -167,12 +188,10 @@ a:hover {
     pointer-events: none;
 }
 
-/* 深色模式时显示背景视频 */
 [data-theme="dark"] .background-video {
     opacity: 0.3;
 }
 
-/* 深色模式下的产品卡片优化 */
 [data-theme="dark"] .product-card {
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -181,7 +200,6 @@ a:hover {
     border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-/* 深色模式下大卡片图片亮度调整 */
 [data-theme="dark"] .large-card .product-image img {
     filter: brightness(0.8);
 }
@@ -189,19 +207,17 @@ a:hover {
 
 
 .container {
-    max-width: 1180px; /* PC端固定最大宽度 */
+    max-width: 1180px;
     margin: 0 auto;
     padding: 40px 20px;
 }
 
-/* 主布局区域 */
 .main-layout {
     display: flex;
     gap: 40px;
     align-items: flex-start;
 }
 
-/* 个人信息区域 */
 .profile-section {
     flex: 0 0 180px;
     padding: 0;
@@ -235,31 +251,31 @@ a:hover {
 }
 
 .profile-name {
-    font-size: 1.3rem; /* Adjusted font size */
-    font-weight: 700; /* Adjusted font weight */
-    color: var(--color-text-heading); /* Adjusted color */
-    margin-bottom: 8px; /* Adjusted margin */
-    text-align: left; /* Left align name */
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--color-text-heading);
+    margin-bottom: 8px;
+    text-align: left;
 }
 
 .profile-bio {
-    font-size: 0.9rem; /* Adjusted font size */
-    color: var(--color-text-secondary); /* Adjusted color */
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
     line-height: 1.4;
-    margin-bottom: 16px; /* Adjusted margin */
-    text-align: left; /* Left align bio */
-    word-break: break-word; /* 允许长单词换行 */
-    overflow-wrap: break-word; /* 兼容性更好的换行 */
+    margin-bottom: 16px;
+    text-align: left;
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 .profile-button {
     color: var(--color-primary);
     text-decoration: none;
     font-weight: 500;
-    font-size: 0.9rem; /* Adjusted font size */
+    font-size: 0.9rem;
     transition: all 0.3s ease;
     display: inline-block;
-    text-align: left; /* Left align button */
+    text-align: left;
 }
 
 .profile-button:hover {
@@ -267,12 +283,10 @@ a:hover {
 }
 
 
-/* 产品列表区域 */
 .products-section {
     flex: 1;
 }
 
-/* 描述卡片 */
 .description-card {
     background: url('images/tools.webp') no-repeat center center;
     background-size: cover;
@@ -283,8 +297,8 @@ a:hover {
     box-shadow: 
         0 4px 20px rgba(42, 157, 143, 0.3),
         0 8px 40px rgba(42, 157, 143, 0.15);
-    position: relative; /* Needed for overlay */
-    overflow: hidden; /* Ensures overlay doesn't spill */
+    position: relative;
+    overflow: hidden;
 }
 
 .description-card::before {
@@ -294,12 +308,12 @@ a:hover {
     left: 0;
     width: 100%;
     height: 100%;
-    background: var(--color-overlay); /* Dark overlay for readability */
+    background: var(--color-overlay);
     z-index: 1;
 }
 
 .description-card p {
-    position: relative; /* Bring text above overlay */
+    position: relative;
     z-index: 2;
     margin: 0;
     font-size: 1.1rem;
@@ -309,7 +323,6 @@ a:hover {
 
 
 
-/* PC端：4列栅格系统 */
 .products-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -317,19 +330,16 @@ a:hover {
     auto-rows: 288px;
 }
 
-/* 小卡片：1x1 */
 .small-card {
     grid-column: span 1;
     grid-row: span 1;
 }
 
-/* 大卡片：2x1 */
 .large-card {
     grid-column: span 2;
     grid-row: span 1;
 }
 
-/* PC端大卡片：横向布局，图片撑满高度 */
 .large-card .product-image {
     width: 50%;
     height: 100%;
@@ -341,7 +351,6 @@ a:hover {
     padding: 24px;
 }
 
-/* 产品卡片基础样式 */
 .product-card {
     background: var(--color-card-background);
     border-radius: 20px;
@@ -353,7 +362,6 @@ a:hover {
     cursor: pointer;
     position: relative;
     display: flex;
-    /* 重置链接样式 */
     text-decoration: none;
     color: inherit;
 }
@@ -363,17 +371,15 @@ a:hover {
     box-shadow: 
         0 12px 40px var(--color-card-shadow-hover),
         0 20px 80px var(--color-card-shadow-hover);
-    /* 确保悬停时链接样式不变 */
     text-decoration: none;
     color: inherit;
 }
 
-/* 产品图片 */
 .product-image {
     flex: 0 0 auto;
     width: 40%;
     height: 0;
-    padding-bottom: 30%; /* 40% * 3/4 = 30% */
+    padding-bottom: 30%;
     overflow: hidden;
     position: relative;
 }
@@ -389,7 +395,6 @@ a:hover {
 
 
 
-/* 产品内容 */
 .product-content {
     flex: 1;
     padding: 20px;
@@ -398,7 +403,6 @@ a:hover {
     justify-content: flex-start;
 }
 
-/* 大卡片特殊样式 */
 .large-card .product-name {
     font-size: 1rem;
     margin-bottom: 8px;
@@ -418,7 +422,6 @@ a:hover {
     line-height: 1.5;
 }
 
-/* 小卡片特殊样式 */
 .small-card .product-content {
     padding: 16px;
 }
@@ -444,7 +447,6 @@ a:hover {
 
 
 
-/* 没有图片的卡片：竖直布局 */
 .product-card:not(:has(.product-image)) {
     flex-direction: column;
 }
@@ -455,7 +457,6 @@ a:hover {
     text-align: left;
 }
 
-/* 加载动画 */
 .loading {
     text-align: center;
     padding: 60px 20px;
@@ -481,7 +482,6 @@ a:hover {
     font-size: 1.1rem;
 }
 
-/* 错误提示 */
 .error {
     text-align: center;
     padding: 60px 20px;
@@ -493,7 +493,6 @@ a:hover {
     font-size: 2rem;
 }
 
-/* 页脚 */
 .footer {
     text-align: center;
     margin-top: 60px;
@@ -505,143 +504,124 @@ a:hover {
     font-size: 0.9rem;
 }
 
-/* ======================================
-   响应式设计：2个断点，3种情况
-   1. PC端（>1180px）：整体固定宽度居中，PC端布局
-   2. 中等屏幕（640px-1180px）：整体固定宽度居中，移动端布局
-   3. 移动端（<640px）：整体宽度撑满容器，移动端布局
-   ====================================== */
-
-/* 中等屏幕和移动端共用的布局样式 */
+/* ≤1180px: stacked profile + 2-column grid */
 @media (max-width: 1180px) {
-    /* 主布局垂直排列 */
     .main-layout {
         flex-direction: column;
         gap: 13px;
     }
-    
-    /* 个人信息区域 */
+
     .profile-section {
         flex: none;
         width: 100%;
-        padding: 0; /* Adjusted padding for non-card style */
-        margin-bottom: 25px; /* Adjusted margin-bottom for non-PC */
+        padding: 0;
+        margin-bottom: 25px;
         text-align: center;
     }
-    
+
     .profile-avatar {
-        width: 80px; /* Adjusted avatar size to match blog */
+        width: 80px;
         height: 80px;
         margin: 0 auto 12px auto;
     }
-    
+
     .profile-name {
-        font-size: 1.1rem; /* Adjusted font size to match blog */
-        margin-bottom: 8px; /* Adjusted margin */
+        font-size: 1.1rem;
+        margin-bottom: 8px;
         text-align: center;
     }
-    
+
     .profile-bio {
-        font-size: 0.8rem; /* Adjusted font size to match blog */
-        margin-bottom: 16px; /* Adjusted margin */
+        font-size: 0.8rem;
+        margin-bottom: 16px;
         text-align: center;
     }
-    
+
     .profile-button {
-        font-size: 0.8rem; /* Adjusted font size to match blog */
+        font-size: 0.8rem;
         text-align: center;
         display: block;
         width: fit-content;
         margin: 0 auto;
     }
-    
+
     .products-grid {
         grid-template-columns: repeat(2, 1fr);
         auto-rows: 230px;
         gap: 15px;
     }
-    
-    /* 大卡片：2x1，横向布局 */
+
     .large-card {
         grid-column: span 2;
         grid-row: span 1;
         flex-direction: row;
     }
-    
-    /* 大卡片图片保持左侧显示 */
+
     .large-card .product-image {
         width: 50%;
         height: 100%;
         padding-bottom: 0;
     }
-    
-    /* 小卡片占1列 */
+
     .small-card {
         grid-column: span 1;
         grid-row: span 1;
     }
-    
 
-    
-    /* 图片调整 */
     .product-image {
         width: 35%;
         height: 0;
-        padding-bottom: 26.25%; /* 35% * 3/4 = 26.25% */
+        padding-bottom: 26.25%;
     }
-    
-    /* 字体大小调整 - 统一大小卡片字号 */
+
     .large-card .product-emoji,
     .small-card .product-emoji {
         font-size: 1.8rem;
     }
-    
+
     .large-card .product-name,
     .small-card .product-name {
         font-size: 1rem;
         color: var(--color-text-heading);
     }
-    
+
     .large-card .product-description,
     .small-card .product-description {
         font-size: 0.8rem;
         color: var(--color-text-muted);
     }
-    
-    /* 移动端描述卡片调整 */
+
     .description-card {
         margin: 16px 0;
         padding: 20px;
     }
-    
+
     .description-card p {
         font-size: 1rem;
     }
-    
-    /* 移动端页脚间距调整 */
+
     .footer {
         margin-top: 30px;
     }
 }
 
-/* 中等屏幕：固定宽度居中，使用移动端布局 */
+/* 640–1180px: fixed 600px column */
 @media (min-width: 640px) and (max-width: 1180px) {
     .container {
-        max-width: 600px; /* 中等屏幕固定宽度 */
+        max-width: 600px;
         margin: 0 auto;
         padding: 40px 20px;
     }
 }
 
-/* 移动端：撑满容器，使用移动端布局 */
+/* <640px: full width */
 @media (max-width: 640px) {
     .container {
-        max-width: none; /* 移动端撑满屏幕 */
+        max-width: none;
         padding: 30px 20px;
     }
 }
 
-/* 减少动效偏好 */
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

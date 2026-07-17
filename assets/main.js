@@ -1,13 +1,15 @@
 /*
  * File: main.js
- * Project: assets
- * Created: 2025-07-16 08:05:41
+ * Project: victor42-work
  * Author: Victor Cheng
  * Email: hi@victor42.work
- * Description: Victor42 创造营地 - 小玩意工具集合
+ * Description: Product showcase — data-driven render, bilingual UI, theme & background video
  */
 
 const SITE_ORIGIN = 'https://work.victor42.work';
+const SITE_DATE_MODIFIED = '2026-07-16';
+const DATA_URL = './data.json?v=20260716';
+
 const UI_TEXT = {
     zh: {
         loading: '正在加载小玩意...',
@@ -35,7 +37,8 @@ let videoSourcesAttached = false;
 
 document.addEventListener('DOMContentLoaded', function() {
     initializeLanguage();
-    updateThemeIcon();
+    bindThemeControls();
+    syncThemeIcon();
     loadProducts();
     initializeBackgroundVideo();
 });
@@ -210,7 +213,7 @@ function updateStructuredData(data) {
         },
         inLanguage: currentLanguage === 'zh' ? 'zh-CN' : 'en',
         copyrightYear: '2011',
-        dateModified: new Date().toISOString().slice(0, 10),
+        dateModified: SITE_DATE_MODIFIED,
         mainEntity: {
             '@type': 'ItemList',
             name: currentLanguage === 'zh' ? '小玩意工具集合' : 'Gadgets & Tools',
@@ -225,7 +228,7 @@ function updateStructuredData(data) {
 
 async function loadProducts() {
     try {
-        const response = await fetch('./data.json');
+        const response = await fetch(DATA_URL);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -407,15 +410,7 @@ function pauseBackgroundVideo() {
     video.pause();
 }
 
-function updateThemeIcon() {
-    const html = document.documentElement;
-    const themeIcon = document.querySelector('.theme-icon');
-    const currentTheme = html.getAttribute('data-theme');
-
-    if (themeIcon) {
-        themeIcon.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
-    }
-
+function bindThemeControls() {
     const themeToggle = document.getElementById('theme-toggle');
     if (themeToggle) {
         themeToggle.addEventListener('click', toggleTheme);
@@ -428,19 +423,26 @@ function updateThemeIcon() {
     });
 }
 
+function syncThemeIcon() {
+    const themeIcon = document.querySelector('.theme-icon');
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    if (themeIcon) {
+        themeIcon.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+    }
+}
+
 function applyTheme(theme) {
     const html = document.documentElement;
-    const themeIcon = document.querySelector('.theme-icon');
 
     if (theme === 'dark') {
         html.setAttribute('data-theme', 'dark');
-        if (themeIcon) themeIcon.textContent = '☀️';
         playBackgroundVideo();
     } else {
         html.removeAttribute('data-theme');
-        if (themeIcon) themeIcon.textContent = '🌙';
         pauseBackgroundVideo();
     }
+
+    syncThemeIcon();
 }
 
 function toggleTheme() {
@@ -464,4 +466,3 @@ function initializeBackgroundVideo() {
         playBackgroundVideo();
     }
 }
-
