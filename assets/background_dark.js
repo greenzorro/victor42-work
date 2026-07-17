@@ -1,7 +1,7 @@
 /*
  * File: background_dark.js
  * Project: victor42-work (portable)
- * Description: L3 oblique spiral galaxy — continuous disk texture + particles.
+ * Description: Oblique spiral galaxy — continuous disk texture and particles.
  *
  * Pipeline:
  *  1) Pre-render face-on continuous density field (arms, dust cutouts, color)
@@ -104,7 +104,7 @@
         state.squashY = Math.max(0.12, Math.cos(tilt));
     }
 
-    // Cheap value noise / fbm for organic breakup (not a perfect CAD spiral).
+    // Value-noise fBm adds organic density variation.
     function hash2(x, y) {
         const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453123;
         return n - Math.floor(n);
@@ -136,10 +136,10 @@
         return v;
     }
 
-    // Trailing arms + asymmetry, phase jitter, clumps, weak spurs.
+    // Two asymmetric trailing arms with phase variation, clumps, and a spur.
     function armDensity(r, theta, arms, tightness) {
         let d = 0;
-        // Arm 0 stronger / arm 1 weaker & slightly different pitch (real disks aren't twins)
+        // The arms use independent strength, pitch, and phase values.
         const strength = [1.05, 0.68];
         const tightMul = [0.94, 1.14];
         const phase0 = [0.0, 0.42];
@@ -147,7 +147,7 @@
         for (let a = 0; a < arms; a++) {
             const n1 = fbm(r * 3.1 + a * 7.3, theta * 1.4 + a) - 0.5;
             const n2 = fbm(r * 9.0 + theta * 2.2, a * 4.1) - 0.5;
-            // Gentler phase jitter to preserve clean logarithmic spiral flow
+            // Phase jitter preserves the logarithmic spiral flow.
             const phaseJitter = n1 * 0.25 + n2 * 0.12;
             const localTight = tightness * tightMul[a];
             const phase = arms * (theta + Math.log(Math.max(r, 0.03)) / localTight)
@@ -155,24 +155,20 @@
                 + phaseJitter;
             let wave = 0.5 + 0.5 * Math.cos(phase);
             wave = Math.pow(wave, 1.35);
-            // Gentler brightness clumps along the arm
+            // Low-frequency fBm creates brightness clumps along each arm.
             const clump = 0.7 + 0.5 * fbm(r * 5.5 + a * 2, theta * 3.8 + r * 2.5);
-            // Gentler arm width breaks / holes to keep arms continuous
+            // Local width variation keeps each arm continuous.
             const breakUp = 0.8 + 0.3 * fbm(theta * 2.5 + r * 4, a * 9 + r * 1.2);
             d = Math.max(d, wave * strength[a] * clump * breakUp);
         }
 
-        // Faint irregular spur / bridge
+        // A faint irregular spur bridges the main arms.
         const spurPhase = 3.15 * (theta + Math.log(Math.max(r, 0.03)) / 0.38 + 0.7);
         let spur = 0.5 + 0.5 * Math.cos(spurPhase);
         spur = spur * spur * (0.15 + 0.35 * fbm(r * 6, theta * 5));
         d = Math.max(d, spur);
 
         return clamp(d, 0, 1.55);
-    }
-
-    function armWave(r, theta, arms, tightness) {
-        return armDensity(r, theta, arms, tightness);
     }
 
     function project(x, y, z, cosA, sinA) {
@@ -230,7 +226,7 @@
         const half = texSize * 0.5;
         const inv = 1 / (half * 0.9);
 
-        // Lopsided / slightly barred frame (not centered perfect circle)
+        // Offset, slightly barred disk frame.
         const ox = 0.055;
         const oy = -0.03;
         const stretchX = 1.08;
@@ -240,10 +236,10 @@
             for (let i = 0; i < texSize; i++) {
                 let x = (i - half) * inv;
                 let y = (j - half) * inv;
-                // warp into irregular disk coordinates
+                // Warp into irregular disk coordinates.
                 x = (x - ox) * stretchX;
                 y = (y - oy) * stretchY;
-                // mild azimuthal warp
+                // Mild azimuthal warp.
                 const r0 = Math.sqrt(x * x + y * y);
                 if (r0 > 1.25) continue;
                 const th0 = Math.atan2(y, x);
@@ -251,7 +247,7 @@
                 const r = r0 * (1 + warp * 0.35 + (fbm(th0 * 0.8, r0 * 2) - 0.5) * 0.08);
                 const theta = th0 + (fbm(r0 * 2.2, th0) - 0.5) * 0.22;
 
-                // Smooth outer boundary (less ragged edgeN noise to prevent tattered cloth look)
+                // Smooth outer boundary.
                 const edgeN = fbm(x * 2.4 + 3, y * 2.4 - 1);
                 const rMax = 0.92 + edgeN * 0.07 + Math.abs(Math.sin(th0 * 2 + 0.4)) * 0.03;
                 if (r > rMax) continue;
@@ -264,17 +260,17 @@
                 const disk = diskFall * diskN;
                 const outer = smoothstep(0.26, 0.78, r);
 
-                // Patchy dust (continuous ribbons, not a patchy tattered look)
+                // Layered noise forms continuous dust ribbons.
                 const dustBase = armDensity(r, theta + 0.18 + (fbm(r * 3, theta) - 0.5) * 0.3, arms, tightness);
-                // Lower frequency and higher minimum bound to keep dust lanes continuous and prevent dark pits
+                // The first dust band defines broad, continuous lanes.
                 const dustPatch = 0.62 + 0.38 * fbm(x * 3.2, y * 3.2);
-                // Allow dust to enter the core (suppress by 72% instead of 100%, and allow down to r=0.04)
+                // Dust attenuation extends into the core at reduced strength.
                 const dustBand = dustBase * dustBase
                     * dustPatch
                     * (1 - core * 0.72)
                     * smoothstep(0.04, 0.12, r)
                     * (1 - smoothstep(0.7, 0.98, r));
-                // Secondary narrower dust lane for more absorptive look
+                // A secondary band adds narrow absorptive lanes.
                 const dustBase2 = armDensity(r, theta + 0.35 + (fbm(r * 4.2, theta) - 0.5) * 0.25, arms, tightness);
                 const narrowDust = dustBase2 * dustBase2 * dustBase2
                     * (0.5 + 0.5 * fbm(x * 4.5, y * 4.5))
@@ -282,13 +278,13 @@
                     * smoothstep(0.06, 0.15, r)
                     * (1 - smoothstep(0.62, 0.88, r));
 
-                // Inter-arm haze: very faint, cool, almost void-like (real gaps are dark)
+                // Faint cool haze fills the inter-arm regions.
                 const haze = disk * (0.012 + 0.035 * fbm(x * 2, y * 2)) * (1 - arm * 0.55);
 
                 let light = disk * (0.02 + arm * 0.72 + core * 0.95) + haze;
-                // Gentler local mottling (lower frequency and amplitude to make gas flow smoothly like trailing arms)
+                // Low-frequency mottling follows the trailing flow.
                 light *= 0.9 + 0.2 * fbm(x * 3.8 + 2, y * 3.8 - 3);
-                // Stronger dust absorption + narrow lane (reference-style dark lanes)
+                // Dust absorption darkens the narrow lanes.
                 light *= 1 - Math.min(0.97, dustBand * 1.05 + narrowDust * 1.25);
 
                 if (light < 0.003 && dustBand < 0.12) continue;
@@ -309,8 +305,7 @@
 
                 if (dustBand > 0.28) {
                     const t = clamp(dustBand * (0.7 + mott * 0.5), 0, 1);
-                    // Dust lanes should be extremely dark (almost black) to act as a silhouette,
-                    // absorbing background lights and stars, instead of being a bright brown-red glow
+                    // Near-black dust lanes silhouette the background light and stars.
                     cr = Math.round(lerp(8, 15, t));
                     cg = Math.round(lerp(6, 12, t));
                     cb = Math.round(lerp(10, 18, t));
@@ -319,16 +314,15 @@
                     // Compute disk color first (inner or outer)
                     let crDisk, cgDisk, cbDisk, caDisk;
                     if (outer > 0.4) {
-                        // Outer arms: blend from soft blue-violet to highly saturated cyan closer to the edge
-                        // Shrink cyan range: only start cyan shift at the outer 35% of the disk
+                        // Outer arms transition from blue-violet to cyan.
                         const cyanMix = smoothstep(0.65, 0.98, outer);
                         
-                        // Blue-violet base for inner-outer transition (make it rich blue-violet)
+                        // Blue-violet base for the inner-to-outer transition.
                         const bvR = Math.round(lerp(100, 60, arm));
                         const bvG = Math.round(lerp(80, 110, arm));
                         const bvB = Math.round(lerp(220, 250, arm));
                         
-                        // Saturated cyan for outer edge (adjusted to be more blue-ish/ice-blue)
+                        // Saturated ice-blue cyan at the outer edge.
                         const cyR = 15;
                         const cyG = 135;
                         const cyB = 255;
@@ -338,11 +332,11 @@
                         cbDisk = Math.round(lerp(bvB, cyB, cyanMix));
                         caDisk = light * 230 * smoothstep(0.05, 0.3, arm);
                     } else {
-                        // Inner disk: violet-purple arms, deep blue-violet gaps/transitions
+                        // The inner disk uses violet-purple arms and blue-violet gaps.
                         const armMix = smoothstep(0.1, 0.38, arm);
                         const baseT = (1 - outer) * (0.25 + arm * 0.75) * (0.7 + mott * 0.4);
                         const t = baseT * (0.45 + 0.55 * armMix);
-                        // Violet-purple arm core (shifted away from pink to purple); deep blue-violet gaps
+                        // Violet-purple arm cores contrast with deep blue-violet gaps.
                         const warmR = Math.round(lerp(150, 185, t));
                         const warmG = Math.round(lerp(90, 125, t));
                         const warmB = Math.round(lerp(210, 245, t));
@@ -355,8 +349,7 @@
                         caDisk = light * 195 * smoothstep(0.05, 0.3, arm + core);
                     }
 
-                    // Smoothly blend in the core bulge color based on core density
-                    // (prevents hard threshold boundary between core and arms)
+                    // Core density smoothly blends the bulge color into the disk.
                     const coreMix = smoothstep(0.06, 0.45, core);
                     if (coreMix > 0.0) {
                         const tCore = clamp(core * (0.85 + mott * 0.3), 0, 1);
@@ -377,7 +370,7 @@
                     }
                 }
 
-                // Blend in HII purple (shifted further away from hot pink towards violet)
+                // H II regions add violet emission along the arms.
                 if (hii > 0.03) {
                     const h = clamp(hii * 1.6, 0, 1);
                     cr = lerp(cr, 175, h * 0.65);
@@ -418,7 +411,7 @@
             const theta = rand() * Math.PI * 2 + (rand() - 0.5) * 0.15;
             const arm = armDensity(r, theta, arms, tightness);
             const core = Math.exp(-r * r * (8 + rand() * 3));
-            // Much more aggressive rejection sampling: stars concentrate heavily on arms and core, leaving gaps empty
+            // Rejection sampling concentrates stars in the arms and core.
             const accept = 0.008 + Math.pow(arm, 2.5) * 0.85 + core * 0.4 + rand() * 0.01;
             if (rand() > accept) continue;
 
@@ -748,7 +741,7 @@
     }
 
     function drawBulge(ctx, cx, cy, s, cosA, sinA) {
-        // Nucleus slightly off geometric center (real bulges aren't perfect)
+        // Nucleus offset from the geometric center.
         const p = project(0.035, -0.02, 0.002, cosA, sinA);
         const bx = cx + p.x * s;
         const by = cy + p.y * s * 0.9;
@@ -796,7 +789,7 @@
             [1, 'rgba(60, 50, 80, 0)']
         ]);
 
-        // Irregular multi-lobe bloom instead of one clean ellipse lamp
+        // Multi-lobe bloom around the core.
         const lobes = [
             { dx: 0, dy: 0, sx: 1, sy: 1, rot: -0.32, a: 1 },
             { dx: 0.04, dy: -0.02, sx: 0.7, sy: 0.85, rot: 0.5, a: 0.45 },
@@ -900,9 +893,7 @@
             return a.depth - b.depth;
         });
 
-        // 3. Build static 3D slices of the galaxy disk and the central Bulge, sorted by depth
-        // We reduce the Z-spread and lower the opacity of outer slices to prevent double-image ghosting
-        // on sharp dust lanes, while keeping the main disk (z=0) sharp and dominant.
+        // 3. Build depth-sorted disk and bulge slices around a sharp central plane.
         const depthFactor = state.cosYaw * state.cosTilt;
         const staticItems = [
             { type: 'slice', depth: -0.018 * depthFactor, z: -0.018, opacity: 0.08, scale: 1.08 },
@@ -916,7 +907,7 @@
             return a.depth - b.depth;
         });
 
-        // 4. Merge-draw both loops in a single unified linear pass to interleave slices, bulge, and stars perfectly
+        // 4. Merge the depth-sorted slices, bulge, and stars into one draw pass.
         let pIdx = 0;
         let sIdx = 0;
         const numParticles = projected.length;

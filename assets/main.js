@@ -114,20 +114,8 @@ function applyStaticUiText() {
 }
 
 function getText(textObj) {
-    if (typeof textObj === 'string') {
-        return textObj;
-    }
     if (typeof textObj === 'object' && textObj !== null) {
-        if (currentLanguage in textObj) {
-            return textObj[currentLanguage];
-        }
-        if ('zh' in textObj) {
-            return textObj.zh;
-        }
-        const values = Object.values(textObj);
-        if (values.length > 0) {
-            return values[0];
-        }
+        return textObj[currentLanguage] || textObj.zh || '';
     }
     return '';
 }
@@ -273,7 +261,7 @@ function renderPage(data) {
     renderProfile(data.profile, getText(data.title));
 
     const productsGrid = document.getElementById('products-grid');
-    productsGrid.innerHTML = '';
+    productsGrid.replaceChildren();
 
     data.products.forEach((product) => {
         const cardSize = product.image ? 'large' : 'small';

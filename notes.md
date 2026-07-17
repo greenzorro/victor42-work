@@ -4,7 +4,7 @@
 
 记录 `projects/victor42-work`（线上 https://work.victor42.work/）的结构与维护约定，供本人与 Agent 后续改站时对齐。
 
-**约定：** 改功能或数据结构后，同步更新本文；以仓库现状为准，不以记忆或旧 commit 为准。
+**约定：** 改功能或数据结构后，同步更新本文，使其持续描述当前实现。
 
 ## 2. 项目概述
 
@@ -74,13 +74,13 @@ victor42-work/
 - head 内联脚本读 localStorage / `prefers-color-scheme`，写 `data-theme`，避免 FOUC
 - 深色：`#18191a` 背景、半透明卡片、`<canvas class="background-canvas">` opacity 0.62
 - 星云逻辑在独立 `assets/background_dark.js`，全局 API：`StarfieldBackground.init / start / stop / isRunning / destroy`
-- 视觉 L3 管线：
+- 渲染顺序：
   1. 预渲染 face-on 连续密度场（旋臂 + 尘带压暗 + 色阶）
   2. 多级缩小/放大模糊 → 星云体而非珠串
   3. 每帧 tilt 压扁 + 盘面内旋转绘制纹理
   4. 3D 投影粒子叠亮星（近端厚度）
   5. 大范围软核球 bloom + 分层背景星场
-- 动力学：盘面 CCW；拖曳臂 θ = -ln(r)/b（非 1:1 银河结构）
+- 动力学：盘面 CCW；拖曳臂使用 θ = -ln(r)/b。
 - 视觉细节：尘埃层位于核球之前，旋臂间隙透出背景恒星以形成视差深度；背景星场包含 1600 颗星点，盘面星点集中于旋臂与核心区域。
 - 尘埃带延伸至核心边缘并保持连续流体感；核球以暖黄、粉橘至白炽渐变过渡，内旋臂为低饱和紫调，外缘为窄带冰蓝色。
 - 主站只负责：dark → `start()`，light → `stop()`；模块内部处理 resize、tab 可见性、`prefers-reduced-motion`
