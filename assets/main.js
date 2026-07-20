@@ -7,7 +7,7 @@
  */
 
 const SITE_ORIGIN = 'https://work.victor42.work';
-const SITE_DATE_MODIFIED = '2026-07-17';
+const SITE_DATE_MODIFIED = '2026-07-20';
 const DATA_URL = './data.json?v=20260717';
 
 const UI_TEXT = {
@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
     bindThemeControls();
     syncThemeIcon();
     loadProducts();
-    initStarfield();
+    initBackgrounds();
 });
 
 function initializeLanguage() {
@@ -369,19 +369,24 @@ function isDarkTheme() {
     return document.documentElement.getAttribute('data-theme') === 'dark';
 }
 
-function syncStarfield() {
-    if (typeof StarfieldBackground === 'undefined') return;
+function syncBackgrounds() {
     if (isDarkTheme()) {
-        StarfieldBackground.start();
+        if (typeof LeafShadowBackground !== 'undefined') LeafShadowBackground.stop();
+        if (typeof StarfieldBackground !== 'undefined') StarfieldBackground.start();
     } else {
-        StarfieldBackground.stop();
+        if (typeof StarfieldBackground !== 'undefined') StarfieldBackground.stop();
+        if (typeof LeafShadowBackground !== 'undefined') LeafShadowBackground.start();
     }
 }
 
-function initStarfield() {
-    if (typeof StarfieldBackground === 'undefined') return;
-    StarfieldBackground.init('#background-canvas');
-    syncStarfield();
+function initBackgrounds() {
+    if (typeof LeafShadowBackground !== 'undefined') {
+        LeafShadowBackground.init('#light-background-canvas');
+    }
+    if (typeof StarfieldBackground !== 'undefined') {
+        StarfieldBackground.init('#background-canvas');
+    }
+    syncBackgrounds();
 }
 
 function bindThemeControls() {
@@ -415,7 +420,7 @@ function applyTheme(theme) {
     }
 
     syncThemeIcon();
-    syncStarfield();
+    syncBackgrounds();
 }
 
 function toggleTheme() {

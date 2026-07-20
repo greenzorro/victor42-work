@@ -74,11 +74,11 @@
       },
       "inLanguage": "zh-CN",
       "copyrightYear": "2011",
-      "dateModified": "2026-07-17"
+      "dateModified": "2026-07-20"
     }
     </script>
 
-    <link rel="stylesheet" href="./assets/style.css?v=20260717">
+    <link rel="stylesheet" href="./assets/style.css?v=20260720">
 
     <!-- Apply saved/system theme before paint (avoid FOUC) -->
     <script>
@@ -98,7 +98,8 @@
     </script>
 </head>
   <body>
-      <canvas class="background-canvas" id="background-canvas" aria-hidden="true"></canvas>
+      <canvas class="background-canvas background-canvas--light" id="light-background-canvas" aria-hidden="true"></canvas>
+      <canvas class="background-canvas background-canvas--dark" id="background-canvas" aria-hidden="true"></canvas>
 
       <button class="theme-toggle" id="theme-toggle" aria-label="切换深色模式" type="button">
           <span class="theme-icon" aria-hidden="true">🌙</span>
@@ -140,7 +141,8 @@
         </main>
     </div>
 
-    <script src="assets/background_dark.js?v=20260717"></script>
-    <script src="assets/main.js?v=20260717"></script>
+    <script src="assets/background_light.js?v=20260720-2"></script>
+    <script src="assets/background_dark.js?v=20260720"></script>
+    <script src="assets/main.js?v=20260720"></script>
     </body>
 </html>

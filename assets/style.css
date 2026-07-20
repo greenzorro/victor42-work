@@ -170,7 +170,7 @@ a {
     line-height: 1;
 }
 
-/* Dark theme starfield canvas */
+/* Portable light/dark background layers */
 .background-canvas {
     position: fixed;
     top: 0;
@@ -184,8 +184,22 @@ a {
     display: block;
 }
 
-[data-theme="dark"] .background-canvas {
+.background-canvas--light {
+    opacity: 1;
+}
+
+[data-theme="dark"] .background-canvas--light {
+    opacity: 0;
+}
+
+[data-theme="dark"] .background-canvas--dark {
     opacity: 0.62;
+}
+
+@media (max-width: 640px) {
+    .background-canvas--light {
+        opacity: 0.82;
+    }
 }
 
 [data-theme="dark"] .large-card .product-image img {
@@ -611,7 +625,7 @@ a {
         scroll-behavior: auto !important;
     }
 
-    .background-canvas {
+    .background-canvas--dark {
         display: none !important;
     }
 
