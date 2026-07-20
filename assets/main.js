@@ -3,7 +3,7 @@
  * Project: victor42-work
  * Author: Victor Cheng
  * Email: hi@victor42.work
- * Description: Product showcase — data-driven render, bilingual UI, theme toggle
+ * Description: Product showcase — data-driven render, bilingual UI, themed backgrounds
  */
 
 const SITE_ORIGIN = 'https://work.victor42.work';
@@ -33,10 +33,14 @@ const UI_TEXT = {
 
 let currentData = null;
 let currentLanguage = 'zh';
+let backgroundWarmupHandle = null;
+let backgroundWarmupType = '';
+let backgroundSyncGeneration = 0;
 
 document.addEventListener('DOMContentLoaded', function() {
     initializeLanguage();
     bindThemeControls();
+    bindBackgroundWarmupControls();
     syncThemeIcon();
     loadProducts();
     initBackgrounds();
@@ -230,6 +234,7 @@ async function loadProducts() {
         if (loading) {
             loading.style.display = 'none';
         }
+        scheduleInactiveBackgroundWarmup();
     }
 }
 
@@ -369,6 +374,78 @@ function isDarkTheme() {
     return document.documentElement.getAttribute('data-theme') === 'dark';
 }
 
+function cancelInactiveBackgroundWarmup() {
+    if (backgroundWarmupHandle === null) return;
+    if (backgroundWarmupType === 'idle' && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(backgroundWarmupHandle);
+    } else {
+        window.clearTimeout(backgroundWarmupHandle);
+    }
+    backgroundWarmupHandle = null;
+    backgroundWarmupType = '';
+}
+
+function prepareInactiveBackground() {
+    if (document.visibilityState !== 'visible') return;
+
+    const background = isDarkTheme()
+        ? (typeof LeafShadowBackground !== 'undefined' ? LeafShadowBackground : null)
+        : (typeof StarfieldBackground !== 'undefined' ? StarfieldBackground : null);
+
+    if (background && typeof background.prepareAsync === 'function') {
+        background.prepareAsync().catch(function(error) {
+            console.error('Could not prewarm inactive background:', error);
+        });
+    } else if (background && typeof background.prepare === 'function') {
+        background.prepare();
+    }
+}
+
+function scheduleInactiveBackgroundWarmup() {
+    cancelInactiveBackgroundWarmup();
+    if (document.visibilityState !== 'visible') return;
+
+    const prepare = function() {
+        backgroundWarmupHandle = null;
+        backgroundWarmupType = '';
+        prepareInactiveBackground();
+    };
+
+    if ('requestIdleCallback' in window) {
+        backgroundWarmupType = 'idle';
+        backgroundWarmupHandle = window.requestIdleCallback(prepare, {
+            timeout: 2400
+        });
+    } else {
+        backgroundWarmupType = 'timeout';
+        backgroundWarmupHandle = window.setTimeout(prepare, 1200);
+    }
+}
+
+function bindBackgroundWarmupControls() {
+    window.addEventListener('resize', scheduleInactiveBackgroundWarmup);
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+            scheduleInactiveBackgroundWarmup();
+        } else {
+            cancelInactiveBackgroundWarmup();
+        }
+    });
+}
+
+function syncBackgroundsAfterPaint() {
+    const generation = ++backgroundSyncGeneration;
+    cancelInactiveBackgroundWarmup();
+
+    window.requestAnimationFrame(function() {
+        window.requestAnimationFrame(function() {
+            if (generation !== backgroundSyncGeneration) return;
+            syncBackgrounds();
+            scheduleInactiveBackgroundWarmup();
+        });
+    });
+}
+
 function syncBackgrounds() {
     if (isDarkTheme()) {
         if (typeof LeafShadowBackground !== 'undefined') LeafShadowBackground.stop();
@@ -420,7 +497,7 @@ function applyTheme(theme) {
     }
 
     syncThemeIcon();
-    syncBackgrounds();
+    syncBackgroundsAfterPaint();
 }
 
 function toggleTheme() {

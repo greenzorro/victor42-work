@@ -11,7 +11,7 @@
  *  5) Soft bulge bloom + deep-field stars
  *
  * Dynamics: CCW disk spin; trailing log spirals θ = -ln(r)/b.
- * API: StarfieldBackground.init / start / stop / isRunning / destroy
+ * API: StarfieldBackground.init / prepare / prepareAsync / start / stop / isRunning / destroy
  */
 (function (global) {
     'use strict';
@@ -52,6 +52,9 @@
         resizeTimer: 0,
         listenersBound: false,
         motionQuery: null,
+        assetBuildToken: 0,
+        preparePromise: null,
+        buildUrgent: false,
         options: Object.assign({}, DEFAULTS),
         cosTilt: 1,
         sinTilt: 0,
@@ -214,7 +217,7 @@
         return out;
     }
 
-    function buildGalaxyTexture(texSize) {
+    function* buildGalaxyTextureSteps(texSize) {
         const raw = document.createElement('canvas');
         raw.width = texSize;
         raw.height = texSize;
@@ -289,7 +292,7 @@
 
                 if (light < 0.003 && dustBand < 0.12) continue;
 
-                // HII regions: pinkish star-forming knots along arms
+                // H II regions form violet star-forming knots along the arms.
                 let hii = 0;
                 if (r > 0.16 && r < 0.74 && arm > 0.18) {
                     const hiiNoise = fbm(x * 14 + 5, y * 14 + 2);
@@ -388,12 +391,73 @@
                 data[idx + 2] = clamp(cb | 0, 0, 255);
                 data[idx + 3] = clamp(ca | 0, 0, 255);
             }
+            yield null;
         }
 
         ctx.putImageData(img, 0, 0);
         // Preserve arm structure and color contrast.
         const soft = softBlur(raw, 0.35);
         return softBlur(soft, 0.48);
+    }
+
+    function buildGalaxyTexture(texSize) {
+        const steps = buildGalaxyTextureSteps(texSize);
+        let result = steps.next();
+        while (!result.done) result = steps.next();
+        return result.value;
+    }
+
+    function scheduleAssetBuildChunk(callback) {
+        if (state.buildUrgent || !('requestIdleCallback' in global)) {
+            global.setTimeout(function() { callback(null); }, 0);
+        } else {
+            global.requestIdleCallback(callback, { timeout: 120 });
+        }
+    }
+
+    function buildGalaxyTextureAsync(texSize, token) {
+        const steps = buildGalaxyTextureSteps(texSize);
+
+        return new Promise(function(resolve, reject) {
+            function runChunk(deadline) {
+                if (token !== state.assetBuildToken) {
+                    resolve(null);
+                    return;
+                }
+
+                const started = global.performance && global.performance.now
+                    ? global.performance.now()
+                    : Date.now();
+                const rowLimit = state.buildUrgent ? 4 : 2;
+                const timeLimit = state.buildUrgent ? 9 : 6;
+                let rows = 0;
+                let result = null;
+
+                do {
+                    try {
+                        result = steps.next();
+                    } catch (error) {
+                        reject(error);
+                        return;
+                    }
+                    rows++;
+                    if (result.done) {
+                        resolve(result.value);
+                        return;
+                    }
+
+                    const now = global.performance && global.performance.now
+                        ? global.performance.now()
+                        : Date.now();
+                    if (now - started >= timeLimit) break;
+                    if (deadline && deadline.timeRemaining() < 2) break;
+                } while (rows < rowLimit);
+
+                scheduleAssetBuildChunk(runChunk);
+            }
+
+            scheduleAssetBuildChunk(runChunk);
+        });
     }
 
     function buildParticles(count) {
@@ -445,7 +509,7 @@
                 kind = 'arm';
                 size = 0.4 + rand() * 0.9;
                 brightness = 0.3 + rand() * 0.4;
-                // Inner arm: warm cream-white; outer arm within this branch: bluer
+                // This inner-arm band shifts from blue-violet toward cream-white.
                 const warm = smoothstep(0.14, 0.48, r);
                 cr = Math.round(lerp(235, 255, warm));
                 cg = Math.round(lerp(200, 238, warm));
@@ -516,7 +580,7 @@
         return { stars: stars, bright: bright };
     }
 
-    // Sparse stellar halo around the galaxy — old Population-II-like stars
+    // Sparse stellar halo around the galaxy — ancient Population-II-like stars
     function buildHaloStars(count) {
         const rand = mulberry32(0x7a10);
         const stars = [];
@@ -559,7 +623,11 @@
         const area = state.cssW * state.cssH;
         const scale = clamp(area / (1280 * 800), 0.7, 1.3);
         const tex = Math.round(state.options.textureSize * clamp(scale, 0.85, 1.1));
-        state.texture = buildGalaxyTexture(tex);
+        commitAssets(buildGalaxyTexture(tex), scale);
+    }
+
+    function commitAssets(texture, scale) {
+        state.texture = texture;
         state.particles = buildParticles(Math.round(state.options.particleCount * scale));
         state.projected = new Array(state.particles.length);
         for (let i = 0; i < state.projected.length; i++) {
@@ -574,7 +642,35 @@
         state.scale = Math.min(state.cssW, state.cssH) * state.options.scaleFactor;
     }
 
+    function ensureAssetsAsync(urgent) {
+        if (state.texture) return Promise.resolve(true);
+        if (urgent) state.buildUrgent = true;
+        if (state.preparePromise) return state.preparePromise;
+
+        const area = state.cssW * state.cssH;
+        const scale = clamp(area / (1280 * 800), 0.7, 1.3);
+        const tex = Math.round(state.options.textureSize * clamp(scale, 0.85, 1.1));
+        const token = state.assetBuildToken;
+        const promise = buildGalaxyTextureAsync(tex, token).then(function(texture) {
+            if (!texture || token !== state.assetBuildToken) return false;
+            commitAssets(texture, scale);
+            return true;
+        });
+
+        state.preparePromise = promise;
+        promise.finally(function() {
+            if (state.preparePromise === promise) {
+                state.preparePromise = null;
+                state.buildUrgent = false;
+            }
+        });
+        return promise;
+    }
+
     function invalidateAssets() {
+        state.assetBuildToken++;
+        state.preparePromise = null;
+        state.buildUrgent = false;
         state.texture = null;
         state.particles = null;
         state.projected = null;
@@ -584,7 +680,7 @@
         state.brightHalo = null;
     }
 
-    function resize() {
+    function resizeCanvas() {
         if (!state.canvas) return;
         const cssW = global.innerWidth;
         const cssH = global.innerHeight;
@@ -598,11 +694,15 @@
         state.canvas.style.height = cssH + 'px';
         state.ctx = state.canvas.getContext('2d');
         invalidateAssets();
+    }
+
+    function resize() {
+        resizeCanvas();
         ensureAssets();
     }
 
-    function needsResize() {
-        if (!state.canvas || !state.ctx || !state.texture) return true;
+    function canvasNeedsResize() {
+        if (!state.canvas || !state.ctx) return true;
         const cssW = global.innerWidth;
         const cssH = global.innerHeight;
         const dpr = Math.min(global.devicePixelRatio || 1, state.options.dprCap);
@@ -611,6 +711,16 @@
             || state.dpr !== dpr
             || state.canvas.width !== Math.round(cssW * dpr)
             || state.canvas.height !== Math.round(cssH * dpr);
+    }
+
+    function needsResize() {
+        return canvasNeedsResize() || !state.texture;
+    }
+
+    function prepareAssetsAsync(urgent) {
+        if (!state.canvas) return Promise.resolve(false);
+        if (canvasNeedsResize()) resizeCanvas();
+        return ensureAssetsAsync(Boolean(urgent));
     }
 
     function softRadial(ctx, x, y, r1, stops) {
@@ -868,7 +978,7 @@
         drawSpaceGradient(ctx, w, h);
         drawField(ctx, w, h);
         drawHalo(ctx, cx, cy, s);
-        // 1. Sparkle layer: project all particles and calculate screen positions & depths
+        // 1. Project particle positions and depths for this frame.
         const projected = state.projected;
         for (let i = 0; i < particles.length; i++) {
             const p = particles[i];
@@ -961,7 +1071,14 @@
 
     function startLoop() {
         if (!state.canvas || state.running || !state.wantRun || !canAnimate()) return;
-        if (needsResize()) resize();
+        if (needsResize()) {
+            prepareAssetsAsync(true).then(function(prepared) {
+                if (prepared) startLoop();
+            }).catch(function(error) {
+                console.error('Could not prepare dark background:', error);
+            });
+            return;
+        }
         state.running = true;
         state.lastTs = 0;
         if (!state.raf) {
@@ -995,7 +1112,14 @@
         state.resizeTimer = global.setTimeout(function () {
             if (!state.canvas) return;
             if (state.running) {
-                if (needsResize()) resize();
+                if (needsResize()) {
+                    stopLoop(false);
+                    prepareAssetsAsync(true).then(function(prepared) {
+                        if (prepared) startLoop();
+                    }).catch(function(error) {
+                        console.error('Could not prepare dark background:', error);
+                    });
+                }
             } else if (state.wantRun && canAnimate()) {
                 startLoop();
             }
@@ -1039,6 +1163,18 @@
             bindListeners();
             if (shouldResume) syncRuntime();
             return true;
+        },
+
+        prepare: function () {
+            if (!state.canvas) return false;
+            if (state.preparePromise) return false;
+            if (needsResize()) resize();
+            else ensureAssets();
+            return Boolean(state.texture);
+        },
+
+        prepareAsync: function () {
+            return prepareAssetsAsync(false);
         },
 
         start: function () {

@@ -46,8 +46,8 @@ victor42-work/
 - **`getText(obj)`**：按 `currentLanguage` 取文案，缺省回退 `zh`。
 - **主流程**（`DOMContentLoaded`）：
   1. `initializeLanguage` — URL `?lang=` > localStorage > 默认 `zh`
-  2. `bindThemeControls` + `syncThemeIcon`
-  3. `loadProducts` — `fetch('./data.json?v=YYYYMMDD')`
+  2. `bindThemeControls` + `bindBackgroundWarmupControls` + `syncThemeIcon`
+  3. `loadProducts` — `fetch('./data.json?v=YYYYMMDD')`；请求结束后安排非当前主题的背景预热
   4. `initBackgrounds` — 初始化树影与星云模块，`syncBackgrounds` 按当前主题互斥启停
 - **渲染**：`renderPage` → `renderProfile` + `createProductCard`；全部 `textContent` / `createElement`，不用 `innerHTML` 拼用户可见内容。
 - **加载失败**：显示 `#error`，隐藏 loading。
@@ -63,6 +63,7 @@ victor42-work/
   - 无 `image` → `.small-card`（1 列）
 - **主色** `#2A9D8F`，与博客 Stack 主题一致
 - **描述卡**：背景图 `assets/images/tools.webp` + 半透明主色叠层
+- **深色大卡图片**：同时使用 `filter: brightness(0.8)` 压低色调与 `opacity: 0.7` 降低不透明度，避免封面图在深色背景上过亮
 
 ### 3.3 语言
 
@@ -72,13 +73,24 @@ victor42-work/
 
 ### 3.4 主题与动态背景
 
-- head 内联脚本读 localStorage / `prefers-color-scheme`，写 `data-theme`，避免 FOUC
-- 浅色：保持 `#f5f5fa` 背景色，以独立透明 Canvas 在左上叠加柔焦树影；深色：`#18191a` 背景、半透明卡片、星云 Canvas opacity 0.62
-- 树影逻辑在独立 `assets/background_light.js`，全局 API：`LeafShadowBackground.init / start / stop / isRunning / destroy`
-- 树影在初始化或 resize 时用固定随机种子生成远、中、近三层枝叶轮廓；疏密由角点距离、外弧距离、低频斑块噪声和三层共享的高频微型漏光场共同决定，微型漏光场会额外降低局部叶片数量以形成更多小型稀疏区。每层包含 5 根可见主枝，分别对应 5 个独立的扇形运动区；每根主枝的后 20% 与末端都有随枝条同步运动的专属叶团，避免错峰摇曳时从树冠中露出光秃枝梢。远、中、近层分别使用 22、12.5、6.5 px 的半影尺度，并以紧凑的软核心维持平坦内部，使轮廓只比初版略软。整个枝叶投影默认沿页面垂直方向拉伸 1.18 倍，用于模拟斜入射光造成的投影变形；拉伸方向固定于投影面，不随各枝组旋转。运行时所有运动区共享由长、中、短周期和高频扰动四个非整数倍波形叠加成的风力，默认风力倍率为 1.28；风力以 0–1.42 s 的时差依次到达不同枝组和景深层，使形变顶点与回弹起点进一步错开，同时保持总体风向一致。各区域再以略有差异且相对柔和的刚度和近临界阻尼响应。风力变化没有短周期重复，减弱后枝条会回到中性位置，不会像柔软材质持续漂荡，默认 24 FPS。主枝在叶冠内部收束，外围不出现无叶枝梢。所有枝叶区域先合成为一张不透明遮挡蒙版，再统一着色一次，重叠叶片不会重复加深；仅轮廓半影保留明暗过渡。上边和左边另有 16% 纹理出血区，避免摇曳时露出直角边界
-- 树影依赖现代浏览器的 Canvas 2D `filter: blur()`；不再维护缩放模拟模糊的旧浏览器降级路径
+#### 3.4.1 公共主题协调
 
-#### 浅色树影迁移参数
+- head 内联脚本按 URL `?theme=` > localStorage > `prefers-color-scheme` 的优先级写入 `data-theme`，避免 FOUC
+- 浅色：保持 `#f5f5fa` 背景色，以独立透明 Canvas 在左上叠加柔焦树影；深色：`#18191a` 背景、半透明卡片、星云 Canvas opacity 0.62
+- `main.js` 按主题互斥启停背景：dark → 树影 `stop()`、星系 `start()`；light → 星系 `stop()`、树影 `start()`
+- 两个背景模块都支持幂等 `prepare()`：校准 Canvas 视口尺寸并生成或复用模块资源，不设置 `wantRun`，也不启动 RAF
+- `loadProducts()` 结束后，`main.js` 通过 `requestIdleCallback` 预热非当前主题，不支持时使用 1.2 s 定时器。主题切换使用双层 `requestAnimationFrame`，先绘制页面颜色与按钮图标，再启停背景动画；视口变化或页面重新可见后会重新安排预热
+- 两个模块各自处理 resize、tab 可见性和 `prefers-reduced-motion`。减少动态效果时，星系隐藏，树影保留静态帧；退出该设置后按页面主题决定是否运行动画
+
+#### 3.4.2 浅色背景：树影
+
+- **模块与 API**：`assets/background_light.js` 暴露 `LeafShadowBackground.init / prepare / start / stop / isRunning / destroy`
+- **枝叶生成**：树影由 `prepare()` / `start()` 按需生成，并在有效 resize 后重建；固定随机种子确保远、中、近三层枝叶轮廓稳定。疏密由角点距离、外弧距离、低频斑块噪声和三层共享的高频微型漏光场共同决定；微型漏光场会降低局部叶片数量，形成小型稀疏区。每层包含 5 根可见主枝，分别对应 5 个独立扇形运动区；每根主枝的后 20% 与末端都有随枝条同步运动的专属叶团，摇曳时不会从树冠中露出光秃枝梢
+- **投影与合成**：远、中、近层分别使用 22、12.5、6.5 px 的半影尺度，紧凑软核心兼顾平坦内部和柔和边缘。所有枝叶区域先合成为一张不透明遮挡蒙版，再统一着色一次，重叠叶片不会重复加深；仅轮廓半影保留明暗过渡。投影默认沿页面垂直方向拉伸 1.40 倍，以表现斜入射光造成的形变；拉伸方向固定于页面，不随枝组旋转。上边和左边另有 16% 纹理出血区，避免摇曳时露出直角边界
+- **动态**：所有运动区共享由长、中、短周期和高频扰动四个非整数倍波形叠加成的风力，默认风力倍率为 1.35。风力以 0–1.60 s 的时差到达不同枝组和景深层，使形变顶点与回弹起点错开，同时保持总体风向一致；各区域再以略有差异的刚度和近临界阻尼响应。风力没有短周期重复，减弱后枝条回到中性位置，默认 24 FPS
+- **资源与兼容性**：同一视口内多次调用 `start()` / `stop()` 会复用枝叶纹理；`destroy()` 会停止动画、解除监听器并清除 resize 定时器。树影不依赖外部图片，要求浏览器支持 Canvas 2D `filter: blur()`
+
+##### 配置参数
 
 通过 `LeafShadowBackground.init(canvas, options)` 覆盖：
 
@@ -86,26 +98,42 @@ victor42-work/
 |------|--------|------|
 | `shadowColor` | `#26342e` | 树影颜色 |
 | `shadowOpacity` | `0.14` | 最终统一着色透明度 |
-| `windStrength` | `1.28` | 复合风力倍率，只改变受风偏转强度 |
-| `verticalStretch` | `1.18` | 沿页面垂直方向的投影拉伸倍率 |
+| `windStrength` | `1.35` | 复合风力倍率，只改变受风偏转强度 |
+| `verticalStretch` | `1.40` | 沿页面垂直方向的投影拉伸倍率 |
 | `targetFps` | `24` | 动画目标帧率 |
 | `dprCap` | `1.5` | Canvas 设备像素比上限 |
 | `seed` | `20260720` | 固定枝叶分布的随机种子 |
 | `edgeOverscan` | `0.16` | 上、左侧防露边纹理出血比例 |
-- 星云逻辑在独立 `assets/background_dark.js`，全局 API：`StarfieldBackground.init / start / stop / isRunning / destroy`
-- 渲染顺序：
-  1. 预渲染 face-on 连续密度场（旋臂 + 尘带压暗 + 色阶）
-  2. 多级缩小/放大模糊 → 星云体而非珠串
-  3. 每帧 tilt 压扁 + 盘面内旋转绘制纹理
-  4. 3D 投影粒子叠亮星（近端厚度）
-  5. 大范围软核球 bloom + 分层背景星场
-- 动力学：盘面 CCW；拖曳臂使用 θ = -ln(r)/b。
-- 视觉细节：尘埃层位于核球之前，旋臂间隙透出背景恒星以形成视差深度；背景星场包含 1600 颗星点，盘面星点集中于旋臂与核心区域。
-- 尘埃带延伸至核心边缘并保持连续流体感；核球以暖黄、粉橘至白炽渐变过渡，内旋臂为低饱和紫调，外缘为窄带冰蓝色。
-- 主站只负责互斥启停：dark → 树影 `stop()`、星云 `start()`；light → 星云 `stop()`、树影 `start()`。模块内部处理 resize、tab 可见性和 `prefers-reduced-motion`
-- `prefers-reduced-motion: reduce` 时星云隐藏，树影保留静态帧；恢复后按当前主题决定是否重启动画
-- 暂停/恢复且视口未变化时复用纹理与粒子资源；`destroy()` 会解除全部监听器并清理延迟任务
-- 移植：分别拷贝目标背景脚本和对应 Canvas/CSS，再调用该模块的 `init` 与 `start/stop`；树影不依赖外部图片资源
+
+#### 3.4.3 深色背景：星系
+
+- **模块与 API**：`assets/background_dark.js` 暴露 `StarfieldBackground.init / prepare / prepareAsync / start / stop / isRunning / destroy`
+- **渲染管线**：
+  1. 预渲染 face-on 连续密度场，包括旋臂、尘带压暗与色阶
+  2. 多级缩小、放大与柔化，形成连续星云体
+  3. 每帧进行倾角压扁和盘面内旋转
+  4. 按深度合并盘面切片、核球与 3D 投影星点
+  5. 叠加软核球 bloom、恒星晕和深空背景星场
+- **动态与视觉**：盘面逆时针旋转，拖曳臂使用 θ = -ln(r)/b。近侧尘埃切片覆盖核球，旋臂间隙透出背景恒星以形成视差深度；尘埃带延伸至核心边缘，核球以暖黄、粉橘至白炽渐变过渡，内旋臂为低饱和紫调，外缘为窄带冰蓝色
+- **资源与调度**：背景星场以 1600 颗星点为基准，并按视口面积缩放数量；盘面星点集中于旋臂与核心区域。同一视口内多次调用 `start()` / `stop()` 会复用纹理与粒子。`prepareAsync()` 把星云像素生成拆成每批最多 2 行、6 ms 的闲时任务；若生成尚未完成便启动星系，则提高为每批最多 4 行、9 ms，且每批结束后让出主线程。`destroy()` 会停止动画、解除监听器、清除 resize 定时器，并使进行中的资源生成失效
+
+##### 配置参数
+
+通过 `StarfieldBackground.init(canvas, options)` 覆盖：
+
+| 参数 | 默认值 | 作用 |
+|------|--------|------|
+| `targetFps` | `30` | 动画目标帧率 |
+| `rotationPeriodSec` | `300` | 盘面完整旋转一周的秒数 |
+| `dprCap` | `1.5` | Canvas 设备像素比上限 |
+| `textureSize` | `480` | 星系密度纹理的基准边长 |
+| `particleCount` | `4800` | 盘面粒子的基准数量 |
+| `fieldStarCount` | `1600` | 深空背景星点的基准数量 |
+| `tiltDeg` | `76` | 盘面由正视转向侧视的倾角 |
+| `yawDeg` | `-20` | 盘面在屏幕内的偏航角 |
+| `armCount` | `2` | 主旋臂数量 |
+| `armTightness` | `0.27` | 对数螺旋的紧密程度 |
+| `scaleFactor` | `0.9` | 星系相对视口的显示尺度 |
 
 ### 3.5 缓存与资源版本
 
@@ -180,7 +208,7 @@ victor42-work/
 - **语言不切换**：`language` 与 URL `lang`；`data.json` 是否缺 `en` 字段（会回退中文）
 - **树影不显示**：是否 light；`background_light.js` 是否先于 `main.js` 加载；`#light-background-canvas` 是否存在；控制台是否有脚本错误
 - **星云不显示**：是否 dark；系统是否「减少动态效果」；`background_dark.js` 是否先于 `main.js` 加载；控制台是否有脚本错误
-- **分享图不对**：OG/Twitter 必须用绝对 URL（当前指向 `work.victor42.work`）
+- **分享图不对**：OG/Twitter 图片必须使用 `work.victor42.work` 下的绝对 URL
 - **缓存旧列表**：硬刷新；检查 `data.json?v=` 是否已 bump
 
 ## 7. 本地预览

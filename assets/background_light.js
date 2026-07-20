@@ -8,7 +8,7 @@
  *  2) Pre-blur and fade three depth layers to create a natural penumbra
  *  3) Each frame: drive damped spring transforms with a shared gust force
  *
- * API: LeafShadowBackground.init / start / stop / isRunning / destroy
+ * API: LeafShadowBackground.init / prepare / start / stop / isRunning / destroy
  */
 (function (global) {
     'use strict';
@@ -21,8 +21,8 @@
         seed: 20260720,
         shadowColor: '#26342e',
         shadowOpacity: 0.14,
-        windStrength: 1.28,
-        verticalStretch: 1.18,
+        windStrength: 1.35,
+        verticalStretch: 1.4,
         minDisplayWidth: 520,
         maxDisplayWidth: 960,
         widthRatio: 0.48,
@@ -127,10 +127,10 @@
 
     const GROUP_MOTION = [
         { phase: 0.0, speed: 0.74, amplitude: 0.78, gustDelay: 0.0 },
-        { phase: 1.35, speed: 1.08, amplitude: 1.16, gustDelay: 0.26 },
-        { phase: 2.8, speed: 0.89, amplitude: 0.94, gustDelay: 0.58 },
-        { phase: 4.25, speed: 1.22, amplitude: 1.24, gustDelay: 0.96 },
-        { phase: 5.7, speed: 0.68, amplitude: 0.84, gustDelay: 1.3 }
+        { phase: 1.35, speed: 1.08, amplitude: 1.16, gustDelay: 0.3 },
+        { phase: 2.8, speed: 0.89, amplitude: 0.94, gustDelay: 0.66 },
+        { phase: 4.25, speed: 1.22, amplitude: 1.24, gustDelay: 1.08 },
+        { phase: 5.7, speed: 0.68, amplitude: 0.84, gustDelay: 1.46 }
     ];
 
     const state = {
@@ -460,7 +460,7 @@
         return {
             phase: layer.phase + motion.phase,
             responseSpeed: motion.speed * (1 + layerIndex * 0.045),
-            gustDelay: motion.gustDelay + layerIndex * 0.06,
+            gustDelay: motion.gustDelay + layerIndex * 0.07,
             stiffness: stiffness,
             damping: 2 * 0.92 * Math.sqrt(stiffness),
             forceScale: referenceStiffness,
@@ -634,8 +634,8 @@
         for (let i = 0; i < state.layers.length; i++) {
             const layer = state.layers[i];
             const spec = layer.spec;
-            // The same wind field reaches nearby branch groups a fraction apart,
-            // staggering peak deformation without changing the wind direction.
+            // The same wind field reaches branch groups and depth layers at
+            // staggered delays, separating their peaks while preserving direction.
             const delayedGust = gustForceAt(time - spec.gustDelay)
                 * state.options.windStrength;
             const response = 0.92
@@ -791,6 +791,13 @@
             bindListeners();
             if (shouldResume) syncRuntime();
             return true;
+        },
+
+        prepare: function () {
+            if (!state.canvas) return false;
+            if (needsResize()) resize();
+            else ensureLayers();
+            return Boolean(state.layers);
         },
 
         start: function () {
