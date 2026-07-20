@@ -140,13 +140,13 @@ victor42-work/
 | 类型 | 是否写入 sitemap | 说明 |
 |------|------------------|------|
 | `https://work.victor42.work/` | 必须 | 本页，priority `1.0` |
-| `https://*.victor42.work/` 产品子域 | 必须 | priority `0.8`，`changefreq` monthly |
+| `https://*.victor42.work/` 产品子域 | **不写** | 由各产品站点维护自己的 sitemap；这里只保留卡片外链 |
 | GitHub / GitHub Pages / 飞书 / GreasyFork 等 | **不写** | 外链只在 `data.json` 卡片中出现 |
 
 **加产品流程：**
 
 1. 在 `data.json` 追加条目（中英文案、`url`，可选 `image`）
-2. 若 URL 为 `*.victor42.work`，在 `sitemap.xml` 增加对应 `<url>`，并刷新各条 `<lastmod>`
+2. `sitemap.xml` 只维护 `https://work.victor42.work/`，产品子域不在此重复收录
 3. 更新 `main.js` 的 `DATA_URL` 与 `SITE_DATE_MODIFIED`，以及 `index.html` 内 JSON-LD `dateModified`、CSS/JS 的 `?v=`
 4. 若新增封面图，放入 `assets/images/`
 
