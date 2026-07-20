@@ -19,9 +19,9 @@
         textureWidth: 1000,
         textureHeight: 900,
         seed: 20260720,
-        shadowColor: '#314039',
-        shadowOpacity: 0.12,
-        windStrength: 1.13,
+        shadowColor: '#26342e',
+        shadowOpacity: 0.14,
+        windStrength: 1.28,
         verticalStretch: 1.18,
         minDisplayWidth: 520,
         maxDisplayWidth: 960,
@@ -123,14 +123,14 @@
         }
     ];
 
-    const BRANCH_GROUPS = [0, 1, 2, 3, 1];
+    const BRANCH_GROUPS = [0, 1, 2, 3, 4];
 
     const GROUP_MOTION = [
         { phase: 0.0, speed: 0.74, amplitude: 0.78, gustDelay: 0.0 },
-        { phase: 1.35, speed: 1.08, amplitude: 1.16, gustDelay: 0.06 },
-        { phase: 2.8, speed: 0.89, amplitude: 0.94, gustDelay: 0.14 },
-        { phase: 4.25, speed: 1.22, amplitude: 1.24, gustDelay: 0.22 },
-        { phase: 5.7, speed: 0.68, amplitude: 0.84, gustDelay: 0.1 }
+        { phase: 1.35, speed: 1.08, amplitude: 1.16, gustDelay: 0.26 },
+        { phase: 2.8, speed: 0.89, amplitude: 0.94, gustDelay: 0.58 },
+        { phase: 4.25, speed: 1.22, amplitude: 1.24, gustDelay: 0.96 },
+        { phase: 5.7, speed: 0.68, amplitude: 0.84, gustDelay: 1.3 }
     ];
 
     const state = {
@@ -250,6 +250,49 @@
             branch[6], branch[7]
         );
         ctx.stroke();
+    }
+
+    function pointOnBranch(branch, t) {
+        const inverse = 1 - t;
+        const inverseSquared = inverse * inverse;
+        const tSquared = t * t;
+        const x = inverseSquared * inverse * branch[0]
+            + 3 * inverseSquared * t * branch[2]
+            + 3 * inverse * tSquared * branch[4]
+            + tSquared * t * branch[6];
+        const y = inverseSquared * inverse * branch[1]
+            + 3 * inverseSquared * t * branch[3]
+            + 3 * inverse * tSquared * branch[5]
+            + tSquared * t * branch[7];
+        const dx = 3 * inverseSquared * (branch[2] - branch[0])
+            + 6 * inverse * t * (branch[4] - branch[2])
+            + 3 * tSquared * (branch[6] - branch[4]);
+        const dy = 3 * inverseSquared * (branch[3] - branch[1])
+            + 6 * inverse * t * (branch[5] - branch[3])
+            + 3 * tSquared * (branch[7] - branch[5]);
+        return { x: x, y: y, heading: Math.atan2(dy, dx) };
+    }
+
+    function drawBranchTipLeaves(ctx, branch, layerIndex, random) {
+        const spec = CANOPY_SPECS[layerIndex];
+        const placements = [
+            { t: 0.8, radiusScale: 0.5, countScale: 0.5, sizeScale: 0.88 },
+            { t: 0.97, radiusScale: 0.68, countScale: 0.72, sizeScale: 0.96 }
+        ];
+
+        for (let i = 0; i < placements.length; i++) {
+            const placement = placements[i];
+            const point = pointOnBranch(branch, placement.t);
+            drawLeafCluster(ctx, [
+                point.x,
+                point.y,
+                spec.radiusX * placement.radiusScale,
+                spec.radiusY * placement.radiusScale,
+                Math.max(8, Math.round(spec.leafCount * placement.countScale)),
+                point.heading,
+                spec.baseSize * placement.sizeScale
+            ], random);
+        }
     }
 
     function drawLeafCluster(ctx, cluster, random) {
@@ -417,7 +460,7 @@
         return {
             phase: layer.phase + motion.phase,
             responseSpeed: motion.speed * (1 + layerIndex * 0.045),
-            gustDelay: motion.gustDelay + layerIndex * 0.025,
+            gustDelay: motion.gustDelay + layerIndex * 0.06,
             stiffness: stiffness,
             damping: 2 * 0.92 * Math.sqrt(stiffness),
             forceScale: referenceStiffness,
@@ -449,6 +492,12 @@
             for (let i = 0; i < layout.branches.length; i++) {
                 if (BRANCH_GROUPS[i] === groupIndex) {
                     drawBranch(ctx, layout.branches[i]);
+                    drawBranchTipLeaves(
+                        ctx,
+                        layout.branches[i],
+                        layerIndex,
+                        random
+                    );
                 }
             }
             for (let i = 0; i < clusters.length; i++) {
