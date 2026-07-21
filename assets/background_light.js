@@ -535,6 +535,14 @@
         state.layers = null;
     }
 
+    function resetLayerMotion() {
+        if (!state.layers) return;
+        for (let i = 0; i < state.layers.length; i++) {
+            state.layers[i].spring.displacement = 0;
+            state.layers[i].spring.velocity = 0;
+        }
+    }
+
     function resize() {
         if (!state.canvas) return;
         const cssW = global.innerWidth;
@@ -557,6 +565,7 @@
         }
         state.maskCtx = state.maskCanvas.getContext('2d');
         ensureLayers();
+        resetLayerMotion();
     }
 
     function needsResize() {

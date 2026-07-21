@@ -158,6 +158,10 @@
         return a + (b - a) * t;
     }
 
+    function compareDepth(a, b) {
+        return a.depth - b.depth;
+    }
+
     function smoothstep(e0, e1, x) {
         const t = clamp((x - e0) / (e1 - e0), 0, 1);
         return t * t * (3 - 2 * t);
@@ -182,9 +186,7 @@
             { type: 'slice', depth: 0.008 * depthFactor, z: 0.008, opacity: 0.20, scale: 1.04 },
             { type: 'slice', depth: 0.018 * depthFactor, z: 0.018, opacity: 0.08, scale: 1.08 }
         ];
-        state.staticItems.sort(function (a, b) {
-            return a.depth - b.depth;
-        });
+        state.staticItems.sort(compareDepth);
     }
 
     // Value-noise fBm adds organic density variation.
@@ -621,17 +623,12 @@
             }
 
             particles.push({
-                r: r,
-                theta0: theta,
                 x: Math.cos(theta) * r,
                 y: Math.sin(theta) * r,
                 z: z,
                 zAbs: Math.abs(z),
                 size: size,
                 brightness: brightness,
-                cr: cr,
-                cg: cg,
-                cb: cb,
                 rgbaPrefix: 'rgba(' + cr + ',' + cg + ',' + cb + ',',
                 kind: kind
             });
@@ -657,14 +654,15 @@
                 size = 0.9 + rand() * 1.2;
                 a = 0.5 + rand() * 0.4;
             }
+            const x = rand();
+            const y = rand();
+            const cr = Math.round(lerp(190, 255, rand()));
+            const cg = Math.round(lerp(200, 255, rand()));
             const star = {
-                x: rand(),
-                y: rand(),
+                sx: x * state.cssW,
+                sy: y * state.cssH,
                 size: size,
-                a: a,
-                cr: Math.round(lerp(190, 255, rand())),
-                cg: Math.round(lerp(200, 255, rand())),
-                cb: 255
+                fillStyle: 'rgba(' + cr + ',' + cg + ',255,' + (a * 0.4) + ')'
             };
             stars.push(star);
             if (size > 1.05 && a > 0.55) bright.push(star);
@@ -694,15 +692,15 @@
             const x = r * Math.sin(phi) * Math.cos(theta);
             const y = r * Math.sin(phi) * Math.sin(theta);
             const z = r * Math.cos(phi) * 0.55;
+            const cr = Math.round(lerp(220, 255, rand()));
+            const cg = Math.round(lerp(210, 250, rand()));
+            const cb = Math.round(lerp(170, 225, rand()));
+            const projected = projectInto(state.projectionScratch, x, y, z, 1, 0);
             const star = {
-                x: x,
-                y: y,
-                z: z,
+                sx: state.cssW * 0.5 + projected.x * state.scale,
+                sy: state.cssH * 0.52 + projected.y * state.scale * 0.9,
                 size: size,
-                a: a,
-                cr: Math.round(lerp(220, 255, rand())),
-                cg: Math.round(lerp(210, 250, rand())),
-                cb: Math.round(lerp(170, 225, rand()))
+                fillStyle: 'rgba(' + cr + ',' + cg + ',' + cb + ',' + (a * 0.35) + ')'
             };
             stars.push(star);
             if (size > 0.85 && a > 0.2) bright.push(star);
@@ -738,13 +736,13 @@
             };
         }
         state.visibleProjected = [];
+        state.scale = Math.min(state.cssW, state.cssH) * state.options.scaleFactor;
         const field = buildFieldStars(Math.round(state.options.fieldStarCount * scale));
         state.fieldStars = field.stars;
         state.brightField = field.bright;
         const halo = buildHaloStars(Math.round(260 * scale));
         state.haloStars = halo.stars;
         state.brightHalo = halo.bright;
-        state.scale = Math.min(state.cssW, state.cssH) * state.options.scaleFactor;
     }
 
     function ensureAssetsAsync(urgent) {
@@ -905,48 +903,37 @@
         ctx.fillRect(0, 0, w, h);
     }
 
-    function drawField(ctx, w, h) {
+    function drawField(ctx) {
         const stars = state.fieldStars;
         for (let i = 0; i < stars.length; i++) {
             const st = stars[i];
-            const a = st.a * 0.4;
             ctx.beginPath();
-            ctx.fillStyle = 'rgba(' + st.cr + ',' + st.cg + ',' + st.cb + ',' + a + ')';
-            ctx.arc(st.x * w, st.y * h, st.size, 0, Math.PI * 2);
+            ctx.fillStyle = st.fillStyle;
+            ctx.arc(st.sx, st.sy, st.size, 0, Math.PI * 2);
             ctx.fill();
         }
         const bright = state.brightField;
         for (let i = 0; i < bright.length; i++) {
             const st = bright[i];
-            const x = st.x * w;
-            const y = st.y * h;
-            softRadial(ctx, x, y, st.size * 7, FIELD_GLOW_STOPS);
-            drawSpike(ctx, x, y, st.size * 6.5, 0.14);
+            softRadial(ctx, st.sx, st.sy, st.size * 7, FIELD_GLOW_STOPS);
+            drawSpike(ctx, st.sx, st.sy, st.size * 6.5, 0.14);
         }
     }
 
-    function drawHalo(ctx, cx, cy, s) {
+    function drawHalo(ctx) {
         if (!state.haloStars) return;
         const stars = state.haloStars;
         const bright = state.brightHalo;
-        // Project faint halo stars using fixed in-plane angle (halo doesn't co-rotate with disk)
         for (let i = 0; i < stars.length; i++) {
             const st = stars[i];
-            const pr = projectInto(state.projectionScratch, st.x, st.y, st.z, 1, 0);
-            const x = cx + pr.x * s;
-            const y = cy + pr.y * s * 0.9;
-            const a = st.a * 0.35;
             ctx.beginPath();
-            ctx.fillStyle = 'rgba(' + st.cr + ',' + st.cg + ',' + st.cb + ',' + a + ')';
-            ctx.arc(x, y, st.size, 0, Math.PI * 2);
+            ctx.fillStyle = st.fillStyle;
+            ctx.arc(st.sx, st.sy, st.size, 0, Math.PI * 2);
             ctx.fill();
         }
         for (let i = 0; i < bright.length; i++) {
             const st = bright[i];
-            const pr = projectInto(state.projectionScratch, st.x, st.y, st.z, 1, 0);
-            const x = cx + pr.x * s;
-            const y = cy + pr.y * s * 0.9;
-            softRadial(ctx, x, y, st.size * 5, HALO_GLOW_STOPS);
+            softRadial(ctx, st.sx, st.sy, st.size * 5, HALO_GLOW_STOPS);
         }
     }
 
@@ -1070,8 +1057,8 @@
         ctx.clearRect(0, 0, w, h);
 
         drawSpaceGradient(ctx, w, h);
-        drawField(ctx, w, h);
-        drawHalo(ctx, cx, cy, s);
+        drawField(ctx);
+        drawHalo(ctx);
         // 1. Project particle positions and retain only entries that can be drawn.
         const projectionSlots = state.projected;
         const projected = state.visibleProjected;
@@ -1090,9 +1077,7 @@
         projected.length = projectedCount;
 
         // 2. Sort visible particles by depth from back to front.
-        projected.sort(function (a, b) {
-            return a.depth - b.depth;
-        });
+        projected.sort(compareDepth);
 
         // 3. Reuse the depth-sorted disk and bulge slices for this view matrix.
         const staticItems = state.staticItems;
