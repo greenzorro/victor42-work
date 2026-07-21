@@ -30,12 +30,77 @@
         scaleFactor: 0.9
     };
 
+    const ARM_STRENGTH = [1.05, 0.68];
+    const ARM_TIGHTNESS = [0.94, 1.14];
+    const ARM_PHASE = [0.0, 0.42];
+    const HASH_CACHE = new Map();
+
+    const FIELD_GLOW_STOPS = [
+        [0, 'rgba(255,255,255,0.32)'],
+        [0.15, 'rgba(220,230,255,0.14)'],
+        [0.45, 'rgba(160,180,255,0.045)'],
+        [1, 'rgba(80,100,180,0)']
+    ];
+
+    const HALO_GLOW_STOPS = [
+        [0, 'rgba(255,245,220,0.14)'],
+        [0.18, 'rgba(240,220,190,0.06)'],
+        [0.5, 'rgba(180,160,140,0.018)'],
+        [1, 'rgba(80,70,60,0)']
+    ];
+
+    const BULGE_BAR_STOPS = [
+        [0, 'rgba(255, 242, 220, 0.16)'],
+        [0.22, 'rgba(255, 215, 170, 0.082)'],
+        [0.52, 'rgba(240, 170, 140, 0.034)'],
+        [0.82, 'rgba(150, 100, 130, 0.009)'],
+        [1, 'rgba(55, 50, 75, 0)']
+    ];
+
+    const BULGE_SIDE_STOPS = [
+        [0, 'rgba(255, 230, 195, 0.08)'],
+        [0.3, 'rgba(240, 190, 150, 0.035)'],
+        [0.7, 'rgba(180, 120, 130, 0.010)'],
+        [1, 'rgba(60, 50, 80, 0)']
+    ];
+
+    const BULGE_OUTER_STOPS = [
+        [0, 'rgba(255, 248, 230, 0.24)'],
+        [0.2, 'rgba(255, 225, 185, 0.12)'],
+        [0.5, 'rgba(250, 180, 140, 0.042)'],
+        [0.78, 'rgba(210, 125, 110, 0.012)'],
+        [1, 'rgba(110, 70, 70, 0)']
+    ];
+
+    const BULGE_INNER_STOPS = [
+        [0, 'rgba(255, 252, 245, 0.38)'],
+        [0.3, 'rgba(255, 238, 205, 0.16)'],
+        [0.65, 'rgba(255, 205, 160, 0.04)'],
+        [1, 'rgba(230, 165, 120, 0)']
+    ];
+
+    const BULGE_LOBES = [
+        { dx: 0, dy: 0, sx: 1, sy: 1, rot: -0.32, a: 1 },
+        { dx: 0.04, dy: -0.02, sx: 0.7, sy: 0.85, rot: 0.5, a: 0.45 },
+        { dx: -0.03, dy: 0.025, sx: 0.55, sy: 0.7, rot: -1.1, a: 0.35 }
+    ].map(function(lobe) {
+        lobe.stops = [
+            [0, 'rgba(255, 235, 205, ' + (0.055 * lobe.a) + ')'],
+            [0.25, 'rgba(255, 195, 155, ' + (0.028 * lobe.a) + ')'],
+            [0.55, 'rgba(195, 135, 155, ' + (0.012 * lobe.a) + ')'],
+            [0.82, 'rgba(110, 80, 130, ' + (0.004 * lobe.a) + ')'],
+            [1, 'rgba(40, 40, 75, 0)']
+        ];
+        return lobe;
+    });
+
     const state = {
         canvas: null,
         ctx: null,
         texture: null,
         particles: null,
         projected: null,
+        visibleProjected: null,
         fieldStars: null,
         brightField: null,
         haloStars: null,
@@ -60,7 +125,9 @@
         sinTilt: 0,
         cosYaw: 1,
         sinYaw: 0,
-        squashY: 0.3
+        squashY: 0.3,
+        staticItems: null,
+        projectionScratch: { x: 0, y: 0, depth: 0 }
     };
 
     function getMotionQuery() {
@@ -105,12 +172,34 @@
         state.sinYaw = Math.sin(yaw);
         // tiltDeg = angle from face-on toward edge-on
         state.squashY = Math.max(0.12, Math.cos(tilt));
+
+        const depthFactor = state.cosYaw * state.cosTilt;
+        state.staticItems = [
+            { type: 'slice', depth: -0.018 * depthFactor, z: -0.018, opacity: 0.08, scale: 1.08 },
+            { type: 'slice', depth: -0.008 * depthFactor, z: -0.008, opacity: 0.20, scale: 1.04 },
+            { type: 'slice', depth: 0, z: 0, opacity: 0.65, scale: 1.0 },
+            { type: 'bulge', depth: 0 },
+            { type: 'slice', depth: 0.008 * depthFactor, z: 0.008, opacity: 0.20, scale: 1.04 },
+            { type: 'slice', depth: 0.018 * depthFactor, z: 0.018, opacity: 0.08, scale: 1.08 }
+        ];
+        state.staticItems.sort(function (a, b) {
+            return a.depth - b.depth;
+        });
     }
 
     // Value-noise fBm adds organic density variation.
     function hash2(x, y) {
+        const normalizedX = x >= 0 ? x * 2 : -x * 2 - 1;
+        const normalizedY = y >= 0 ? y * 2 : -y * 2 - 1;
+        const sum = normalizedX + normalizedY;
+        const key = sum * (sum + 1) / 2 + normalizedY;
+        const cached = HASH_CACHE.get(key);
+        if (cached !== undefined) return cached;
+
         const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453123;
-        return n - Math.floor(n);
+        const value = n - Math.floor(n);
+        HASH_CACHE.set(key, value);
+        return value;
     }
 
     function valueNoise(x, y) {
@@ -142,19 +231,15 @@
     // Two asymmetric trailing arms with phase variation, clumps, and a spur.
     function armDensity(r, theta, arms, tightness) {
         let d = 0;
-        // The arms use independent strength, pitch, and phase values.
-        const strength = [1.05, 0.68];
-        const tightMul = [0.94, 1.14];
-        const phase0 = [0.0, 0.42];
 
         for (let a = 0; a < arms; a++) {
             const n1 = fbm(r * 3.1 + a * 7.3, theta * 1.4 + a) - 0.5;
             const n2 = fbm(r * 9.0 + theta * 2.2, a * 4.1) - 0.5;
             // Phase jitter preserves the logarithmic spiral flow.
             const phaseJitter = n1 * 0.25 + n2 * 0.12;
-            const localTight = tightness * tightMul[a];
+            const localTight = tightness * ARM_TIGHTNESS[a];
             const phase = arms * (theta + Math.log(Math.max(r, 0.03)) / localTight)
-                + phase0[a] * arms
+                + ARM_PHASE[a] * arms
                 + phaseJitter;
             let wave = 0.5 + 0.5 * Math.cos(phase);
             wave = Math.pow(wave, 1.35);
@@ -162,7 +247,7 @@
             const clump = 0.7 + 0.5 * fbm(r * 5.5 + a * 2, theta * 3.8 + r * 2.5);
             // Local width variation keeps each arm continuous.
             const breakUp = 0.8 + 0.3 * fbm(theta * 2.5 + r * 4, a * 9 + r * 1.2);
-            d = Math.max(d, wave * strength[a] * clump * breakUp);
+            d = Math.max(d, wave * ARM_STRENGTH[a] * clump * breakUp);
         }
 
         // A faint irregular spur bridges the main arms.
@@ -174,14 +259,17 @@
         return clamp(d, 0, 1.55);
     }
 
-    function project(x, y, z, cosA, sinA) {
+    function projectInto(output, x, y, z, cosA, sinA) {
         const xr = x * cosA - y * sinA;
         const yr = x * sinA + y * cosA;
         const x1 = xr * state.cosYaw + z * state.sinYaw;
         const z1 = -xr * state.sinYaw + z * state.cosYaw;
         const y2 = yr * state.cosTilt - z1 * state.sinTilt;
         const z2 = yr * state.sinTilt + z1 * state.cosTilt;
-        return { x: x1, y: y2, depth: z2 };
+        output.x = x1;
+        output.y = y2;
+        output.depth = z2;
+        return output;
     }
 
     function softBlur(source, mixOriginal) {
@@ -535,12 +623,16 @@
             particles.push({
                 r: r,
                 theta0: theta,
+                x: Math.cos(theta) * r,
+                y: Math.sin(theta) * r,
                 z: z,
+                zAbs: Math.abs(z),
                 size: size,
                 brightness: brightness,
                 cr: cr,
                 cg: cg,
                 cb: cb,
+                rgbaPrefix: 'rgba(' + cr + ',' + cg + ',' + cb + ',',
                 kind: kind
             });
         }
@@ -631,8 +723,21 @@
         state.particles = buildParticles(Math.round(state.options.particleCount * scale));
         state.projected = new Array(state.particles.length);
         for (let i = 0; i < state.projected.length; i++) {
-            state.projected[i] = {};
+            const particle = state.particles[i];
+            state.projected[i] = {
+                x: 0,
+                y: 0,
+                depth: 0,
+                sx: 0,
+                sy: 0,
+                size: particle.size,
+                brightness: particle.brightness,
+                rgbaPrefix: particle.rgbaPrefix,
+                kind: particle.kind,
+                zAbs: particle.zAbs
+            };
         }
+        state.visibleProjected = [];
         const field = buildFieldStars(Math.round(state.options.fieldStarCount * scale));
         state.fieldStars = field.stars;
         state.brightField = field.bright;
@@ -674,52 +779,62 @@
         state.texture = null;
         state.particles = null;
         state.projected = null;
+        state.visibleProjected = null;
         state.fieldStars = null;
         state.brightField = null;
         state.haloStars = null;
         state.brightHalo = null;
     }
 
-    function resizeCanvas() {
-        if (!state.canvas) return;
-        const cssW = global.innerWidth;
-        const cssH = global.innerHeight;
-        const dpr = Math.min(global.devicePixelRatio || 1, state.options.dprCap);
-        state.cssW = cssW;
-        state.cssH = cssH;
-        state.dpr = dpr;
-        state.canvas.width = Math.round(cssW * dpr);
-        state.canvas.height = Math.round(cssH * dpr);
-        state.canvas.style.width = cssW + 'px';
-        state.canvas.style.height = cssH + 'px';
-        state.ctx = state.canvas.getContext('2d');
-        invalidateAssets();
-    }
-
-    function resize() {
-        resizeCanvas();
-        ensureAssets();
-    }
-
-    function canvasNeedsResize() {
-        if (!state.canvas || !state.ctx) return true;
+    function viewportNeedsSync() {
         const cssW = global.innerWidth;
         const cssH = global.innerHeight;
         const dpr = Math.min(global.devicePixelRatio || 1, state.options.dprCap);
         return state.cssW !== cssW
             || state.cssH !== cssH
-            || state.dpr !== dpr
-            || state.canvas.width !== Math.round(cssW * dpr)
-            || state.canvas.height !== Math.round(cssH * dpr);
+            || state.dpr !== dpr;
+    }
+
+    function syncViewportMetrics() {
+        if (!state.canvas) return false;
+        const cssW = global.innerWidth;
+        const cssH = global.innerHeight;
+        const dpr = Math.min(global.devicePixelRatio || 1, state.options.dprCap);
+        const changed = state.cssW !== cssW
+            || state.cssH !== cssH
+            || state.dpr !== dpr;
+        if (!changed) return false;
+
+        state.cssW = cssW;
+        state.cssH = cssH;
+        state.dpr = dpr;
+        invalidateAssets();
+        return true;
+    }
+
+    function displayCanvasNeedsResize() {
+        if (!state.canvas || !state.ctx) return true;
+        return state.canvas.width !== Math.round(state.cssW * state.dpr)
+            || state.canvas.height !== Math.round(state.cssH * state.dpr);
+    }
+
+    function resizeCanvas() {
+        if (!state.canvas) return;
+        syncViewportMetrics();
+        state.canvas.width = Math.round(state.cssW * state.dpr);
+        state.canvas.height = Math.round(state.cssH * state.dpr);
+        state.canvas.style.width = state.cssW + 'px';
+        state.canvas.style.height = state.cssH + 'px';
+        state.ctx = state.canvas.getContext('2d');
     }
 
     function needsResize() {
-        return canvasNeedsResize() || !state.texture;
+        return viewportNeedsSync() || !state.texture;
     }
 
     function prepareAssetsAsync(urgent) {
         if (!state.canvas) return Promise.resolve(false);
-        if (canvasNeedsResize()) resizeCanvas();
+        syncViewportMetrics();
         return ensureAssetsAsync(Boolean(urgent));
     }
 
@@ -731,6 +846,26 @@
         ctx.fillStyle = g;
         ctx.beginPath();
         ctx.arc(x, y, r1, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    function drawParticleGlow(ctx, particle, radius, alpha) {
+        const gradient = ctx.createRadialGradient(
+            particle.sx,
+            particle.sy,
+            0,
+            particle.sx,
+            particle.sy,
+            radius
+        );
+        const color = particle.rgbaPrefix;
+        gradient.addColorStop(0, color + (alpha * 0.32) + ')');
+        gradient.addColorStop(0.25, color + (alpha * 0.12) + ')');
+        gradient.addColorStop(0.6, color + (alpha * 0.035) + ')');
+        gradient.addColorStop(1, color + '0)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(particle.sx, particle.sy, radius, 0, Math.PI * 2);
         ctx.fill();
     }
 
@@ -785,12 +920,7 @@
             const st = bright[i];
             const x = st.x * w;
             const y = st.y * h;
-            softRadial(ctx, x, y, st.size * 7, [
-                [0, 'rgba(255,255,255,0.32)'],
-                [0.15, 'rgba(220,230,255,0.14)'],
-                [0.45, 'rgba(160,180,255,0.045)'],
-                [1, 'rgba(80,100,180,0)']
-            ]);
+            softRadial(ctx, x, y, st.size * 7, FIELD_GLOW_STOPS);
             drawSpike(ctx, x, y, st.size * 6.5, 0.14);
         }
     }
@@ -802,7 +932,7 @@
         // Project faint halo stars using fixed in-plane angle (halo doesn't co-rotate with disk)
         for (let i = 0; i < stars.length; i++) {
             const st = stars[i];
-            const pr = project(st.x, st.y, st.z, 1, 0);
+            const pr = projectInto(state.projectionScratch, st.x, st.y, st.z, 1, 0);
             const x = cx + pr.x * s;
             const y = cy + pr.y * s * 0.9;
             const a = st.a * 0.35;
@@ -813,15 +943,10 @@
         }
         for (let i = 0; i < bright.length; i++) {
             const st = bright[i];
-            const pr = project(st.x, st.y, st.z, 1, 0);
+            const pr = projectInto(state.projectionScratch, st.x, st.y, st.z, 1, 0);
             const x = cx + pr.x * s;
             const y = cy + pr.y * s * 0.9;
-            softRadial(ctx, x, y, st.size * 5, [
-                [0, 'rgba(255,245,220,0.14)'],
-                [0.18, 'rgba(240,220,190,0.06)'],
-                [0.5, 'rgba(180,160,140,0.018)'],
-                [1, 'rgba(80,70,60,0)']
-            ]);
+            softRadial(ctx, x, y, st.size * 5, HALO_GLOW_STOPS);
         }
     }
 
@@ -831,7 +956,7 @@
         const tex = state.texture;
         
         // Project the Z-offset (0, 0, z) into screen coordinates
-        const pr = project(0, 0, z, 1, 0);
+        const pr = projectInto(state.projectionScratch, 0, 0, z, 1, 0);
         
         // Base off-center offset + projected translation
         const ox = s * 0.02 + pr.x * s;
@@ -852,7 +977,7 @@
 
     function drawBulge(ctx, cx, cy, s, cosA, sinA) {
         // Nucleus offset from the geometric center.
-        const p = project(0.035, -0.02, 0.002, cosA, sinA);
+        const p = projectInto(state.projectionScratch, 0.035, -0.02, 0.002, cosA, sinA);
         const bx = cx + p.x * s;
         const by = cy + p.y * s * 0.9;
         const rx = s * 0.29;
@@ -869,13 +994,7 @@
 
         // Boxy peanut bar along the line of nodes (Andromeda-like pseudo-bar)
         // Main bar: elongated warm glow (brighter core)
-        softEllipse(ctx, bx, by, s * 0.34, s * 0.072, barRot, [
-            [0, 'rgba(255, 242, 220, 0.16)'], // warm white
-            [0.22, 'rgba(255, 215, 170, 0.082)'], // warm yellow-orange
-            [0.52, 'rgba(240, 170, 140, 0.034)'], // warm rose-orange
-            [0.82, 'rgba(150, 100, 130, 0.009)'], // faint purple-gray
-            [1, 'rgba(55, 50, 75, 0)']
-        ]);
+        softEllipse(ctx, bx, by, s * 0.34, s * 0.072, barRot, BULGE_BAR_STOPS);
         // Peanut side lobes
         const barLobeSep = s * 0.10;
         const brx = s * 0.13;
@@ -886,28 +1005,12 @@
         const lobe1y = by + barLobeSep * bsin;
         const lobe2x = bx - barLobeSep * bcos;
         const lobe2y = by - barLobeSep * bsin;
-        softEllipse(ctx, lobe1x, lobe1y, brx, bry, barRot, [
-            [0, 'rgba(255, 230, 195, 0.08)'],
-            [0.3, 'rgba(240, 190, 150, 0.035)'],
-            [0.7, 'rgba(180, 120, 130, 0.010)'],
-            [1, 'rgba(60, 50, 80, 0)']
-        ]);
-        softEllipse(ctx, lobe2x, lobe2y, brx, bry, barRot, [
-            [0, 'rgba(255, 230, 195, 0.08)'],
-            [0.3, 'rgba(240, 190, 150, 0.035)'],
-            [0.7, 'rgba(180, 120, 130, 0.010)'],
-            [1, 'rgba(60, 50, 80, 0)']
-        ]);
+        softEllipse(ctx, lobe1x, lobe1y, brx, bry, barRot, BULGE_SIDE_STOPS);
+        softEllipse(ctx, lobe2x, lobe2y, brx, bry, barRot, BULGE_SIDE_STOPS);
 
         // Multi-lobe bloom around the core.
-        const lobes = [
-            { dx: 0, dy: 0, sx: 1, sy: 1, rot: -0.32, a: 1 },
-            { dx: 0.04, dy: -0.02, sx: 0.7, sy: 0.85, rot: 0.5, a: 0.45 },
-            { dx: -0.03, dy: 0.025, sx: 0.55, sy: 0.7, rot: -1.1, a: 0.35 }
-        ];
-
-        for (let i = 0; i < lobes.length; i++) {
-            const L = lobes[i];
+        for (let i = 0; i < BULGE_LOBES.length; i++) {
+            const L = BULGE_LOBES[i];
             softEllipse(
                 ctx,
                 bx + L.dx * s,
@@ -915,31 +1018,22 @@
                 rx * 2.4 * L.sx,
                 ry * 2.6 * L.sy,
                 L.rot,
-                [
-                    [0, 'rgba(255, 235, 205, ' + (0.055 * L.a) + ')'],
-                    [0.25, 'rgba(255, 195, 155, ' + (0.028 * L.a) + ')'],
-                    [0.55, 'rgba(195, 135, 155, ' + (0.012 * L.a) + ')'],
-                    [0.82, 'rgba(110, 80, 130, ' + (0.004 * L.a) + ')'],
-                    [1, 'rgba(40, 40, 75, 0)']
-                ]
+                L.stops
             );
         }
 
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
-        softEllipse(ctx, bx, by, rx * 1.25, ry * 1.35, -0.28, [
-            [0, 'rgba(255, 248, 230, 0.24)'],
-            [0.2, 'rgba(255, 225, 185, 0.12)'],
-            [0.5, 'rgba(250, 180, 140, 0.042)'],
-            [0.78, 'rgba(210, 125, 110, 0.012)'],
-            [1, 'rgba(110, 70, 70, 0)']
-        ]);
-        softEllipse(ctx, bx + s * 0.01, by - s * 0.005, rx * 0.42, ry * 0.45, -0.2, [
-            [0, 'rgba(255, 252, 245, 0.38)'],
-            [0.3, 'rgba(255, 238, 205, 0.16)'],
-            [0.65, 'rgba(255, 205, 160, 0.04)'],
-            [1, 'rgba(230, 165, 120, 0)']
-        ]);
+        softEllipse(ctx, bx, by, rx * 1.25, ry * 1.35, -0.28, BULGE_OUTER_STOPS);
+        softEllipse(
+            ctx,
+            bx + s * 0.01,
+            by - s * 0.005,
+            rx * 0.42,
+            ry * 0.45,
+            -0.2,
+            BULGE_INNER_STOPS
+        );
         ctx.restore();
 
         ctx.restore();
@@ -978,44 +1072,30 @@
         drawSpaceGradient(ctx, w, h);
         drawField(ctx, w, h);
         drawHalo(ctx, cx, cy, s);
-        // 1. Project particle positions and depths for this frame.
-        const projected = state.projected;
+        // 1. Project particle positions and retain only entries that can be drawn.
+        const projectionSlots = state.projected;
+        const projected = state.visibleProjected;
+        let projectedCount = 0;
         for (let i = 0; i < particles.length; i++) {
             const p = particles[i];
-            const x = Math.cos(p.theta0) * p.r;
-            const y = Math.sin(p.theta0) * p.r;
-            const pr = project(x, y, p.z, cosA, sinA);
-            const out = projected[i];
-            out.sx = cx + pr.x * s;
-            out.sy = cy + pr.y * s * 0.9;
-            out.depth = pr.depth;
-            out.size = p.size;
-            out.brightness = p.brightness;
-            out.cr = p.cr;
-            out.cg = p.cg;
-            out.cb = p.cb;
-            out.kind = p.kind;
-            out.zAbs = Math.abs(p.z);
+            const out = projectionSlots[i];
+            projectInto(out, p.x, p.y, p.z, cosA, sinA);
+            out.sx = cx + out.x * s;
+            out.sy = cy + out.y * s * 0.9;
+            if (out.sx < -40 || out.sy < -40 || out.sx > w + 40 || out.sy > h + 40) {
+                continue;
+            }
+            projected[projectedCount++] = out;
         }
+        projected.length = projectedCount;
 
-        // 2. Sort particles by depth from back to front
+        // 2. Sort visible particles by depth from back to front.
         projected.sort(function (a, b) {
             return a.depth - b.depth;
         });
 
-        // 3. Build depth-sorted disk and bulge slices around a sharp central plane.
-        const depthFactor = state.cosYaw * state.cosTilt;
-        const staticItems = [
-            { type: 'slice', depth: -0.018 * depthFactor, z: -0.018, opacity: 0.08, scale: 1.08 },
-            { type: 'slice', depth: -0.008 * depthFactor, z: -0.008, opacity: 0.20, scale: 1.04 },
-            { type: 'slice', depth: 0.0 * depthFactor, z: 0.0, opacity: 0.65, scale: 1.0 },
-            { type: 'bulge', depth: 0.0 },
-            { type: 'slice', depth: 0.008 * depthFactor, z: 0.008, opacity: 0.20, scale: 1.04 },
-            { type: 'slice', depth: 0.018 * depthFactor, z: 0.018, opacity: 0.08, scale: 1.08 }
-        ];
-        staticItems.sort(function (a, b) {
-            return a.depth - b.depth;
-        });
+        // 3. Reuse the depth-sorted disk and bulge slices for this view matrix.
+        const staticItems = state.staticItems;
 
         // 4. Merge the depth-sorted slices, bulge, and stars into one draw pass.
         let pIdx = 0;
@@ -1035,8 +1115,6 @@
                 }
             } else {
                 const p = projected[pIdx++];
-                if (p.sx < -40 || p.sy < -40 || p.sx > w + 40 || p.sy > h + 40) continue;
-
                 const depthFade = clamp(0.72 + p.depth * 0.45, 0.36, 1.2);
                 // Near-side thickness cue
                 const thick = 1 + p.zAbs * 8;
@@ -1044,19 +1122,14 @@
                 const radius = p.size * (0.6 + depthFade * 0.5) * thick;
 
                 if (p.kind === 'bright' || p.kind === 'core') {
-                    softRadial(ctx, p.sx, p.sy, radius * 5, [
-                        [0, 'rgba(' + p.cr + ',' + p.cg + ',' + p.cb + ',' + (alpha * 0.32) + ')'],
-                        [0.25, 'rgba(' + p.cr + ',' + p.cg + ',' + p.cb + ',' + (alpha * 0.12) + ')'],
-                        [0.6, 'rgba(' + p.cr + ',' + p.cg + ',' + p.cb + ',' + (alpha * 0.035) + ')'],
-                        [1, 'rgba(' + p.cr + ',' + p.cg + ',' + p.cb + ',0)']
-                    ]);
+                    drawParticleGlow(ctx, p, radius * 5, alpha);
                     if (p.kind === 'bright') {
                         drawSpike(ctx, p.sx, p.sy, radius * 3.2, alpha * 0.35);
                     }
                 }
 
                 ctx.beginPath();
-                ctx.fillStyle = 'rgba(' + p.cr + ',' + p.cg + ',' + p.cb + ',' + alpha + ')';
+                ctx.fillStyle = p.rgbaPrefix + alpha + ')';
                 ctx.arc(p.sx, p.sy, radius, 0, Math.PI * 2);
                 ctx.fill();
             }
@@ -1079,6 +1152,7 @@
             });
             return;
         }
+        if (displayCanvasNeedsResize()) resizeCanvas();
         state.running = true;
         state.lastTs = 0;
         if (!state.raf) {
@@ -1167,9 +1241,9 @@
 
         prepare: function () {
             if (!state.canvas) return false;
+            syncViewportMetrics();
             if (state.preparePromise) return false;
-            if (needsResize()) resize();
-            else ensureAssets();
+            ensureAssets();
             return Boolean(state.texture);
         },
 

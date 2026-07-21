@@ -388,6 +388,23 @@ function cancelInactiveBackgroundWarmup() {
 function prepareInactiveBackground() {
     if (document.visibilityState !== 'visible') return;
 
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const activeBackground = isDarkTheme()
+        ? (typeof StarfieldBackground !== 'undefined' ? StarfieldBackground : null)
+        : (typeof LeafShadowBackground !== 'undefined' ? LeafShadowBackground : null);
+
+    if (!reducedMotion
+        && activeBackground
+        && typeof activeBackground.isRunning === 'function'
+        && !activeBackground.isRunning()) {
+        backgroundWarmupType = 'timeout';
+        backgroundWarmupHandle = window.setTimeout(
+            scheduleInactiveBackgroundWarmup,
+            500
+        );
+        return;
+    }
+
     const background = isDarkTheme()
         ? (typeof LeafShadowBackground !== 'undefined' ? LeafShadowBackground : null)
         : (typeof StarfieldBackground !== 'undefined' ? StarfieldBackground : null);

@@ -556,7 +556,6 @@
             state.maskCanvas.height = state.canvas.height;
         }
         state.maskCtx = state.maskCanvas.getContext('2d');
-        invalidateLayers();
         ensureLayers();
     }
 
@@ -795,8 +794,7 @@
 
         prepare: function () {
             if (!state.canvas) return false;
-            if (needsResize()) resize();
-            else ensureLayers();
+            ensureLayers();
             return Boolean(state.layers);
         },
 
