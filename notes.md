@@ -2,7 +2,7 @@
 
 ## 1. 目的
 
-记录 `projects/victor42-work`（线上 https://work.victor42.work/）的结构与维护约定，供本人与 Agent 后续改站时对齐。
+记录 `projects/victor42-work`（线上 https://victor42.work/）的结构与维护约定，供本人与 Agent 后续改站时对齐。
 
 **约定：** 改功能或数据结构后，同步更新本文，使其持续描述当前实现。
 
@@ -186,20 +186,20 @@ victor42-work/
 
 | 类型 | 是否写入 sitemap | 说明 |
 |------|------------------|------|
-| `https://work.victor42.work/` | 必须 | 本页，priority `1.0` |
+| `https://victor42.work/` | 必须 | 本页，priority `1.0` |
 | `https://*.victor42.work/` 产品子域 | **不写** | 由各产品站点维护自己的 sitemap；这里只保留卡片外链 |
 | GitHub / GitHub Pages / 飞书 / GreasyFork 等 | **不写** | 外链只在 `data.json` 卡片中出现 |
 
 **加产品流程：**
 
 1. 在 `data.json` 追加条目（中英文案、`url`，可选 `image`）
-2. `sitemap.xml` 只维护 `https://work.victor42.work/`，产品子域不在此重复收录
+2. `sitemap.xml` 只维护 `https://victor42.work/`，产品子域不在此重复收录
 3. 更新 `main.js` 的 `DATA_URL` 与 `SITE_DATE_MODIFIED`，以及 `index.html` 内 JSON-LD `dateModified`、CSS/JS 的 `?v=`
 4. 若新增封面图，放入 `assets/images/`
 
 ### 5.3 robots.txt
 
-允许全站抓取；声明 `Sitemap: https://work.victor42.work/sitemap.xml`。
+允许全站抓取；声明 `Sitemap: https://victor42.work/sitemap.xml`。
 
 ## 6. 故障排查
 
@@ -208,7 +208,7 @@ victor42-work/
 - **语言不切换**：`language` 与 URL `lang`；`data.json` 是否缺 `en` 字段（会回退中文）
 - **树影不显示**：是否 light；`background_light.js` 是否先于 `main.js` 加载；`#light-background-canvas` 是否存在；控制台是否有脚本错误
 - **星云不显示**：是否 dark；系统是否「减少动态效果」；`background_dark.js` 是否先于 `main.js` 加载；控制台是否有脚本错误
-- **分享图不对**：OG/Twitter 图片必须使用 `work.victor42.work` 下的绝对 URL
+- **分享图不对**：OG/Twitter 图片必须使用 `victor42.work` 下的绝对 URL
 - **缓存旧列表**：硬刷新；检查 `data.json?v=` 是否已 bump
 
 ## 7. 本地预览

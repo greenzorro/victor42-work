@@ -6,7 +6,7 @@
  * Description: Product showcase — data-driven render, bilingual UI, themed backgrounds
  */
 
-const SITE_ORIGIN = 'https://work.victor42.work';
+const SITE_ORIGIN = 'https://victor42.work';
 const SITE_DATE_MODIFIED = '2026-07-20';
 const DATA_URL = './data.json?v=20260717';
 

@@ -5,6 +5,6 @@ Disallow: /.git/
 Disallow: /*.log$
 Disallow: /*.tmp$
 
-Sitemap: https://work.victor42.work/sitemap.xml
+Sitemap: https://victor42.work/sitemap.xml
 
 Crawl-delay: 1

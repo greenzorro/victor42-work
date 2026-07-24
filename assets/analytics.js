@@ -3,8 +3,7 @@
 
     const measurementId = 'G-14SGRFWENB';
     const productionHosts = new Set([
-        'victor42.work',
-        'work.victor42.work'
+        'victor42.work'
     ]);
 
     if (!productionHosts.has(window.location.hostname)) {
