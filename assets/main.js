@@ -192,7 +192,7 @@ function updateStructuredData(data) {
         author: {
             '@type': 'Person',
             name: 'Victor42',
-            url: data.profile.website.url,
+            url: `${SITE_ORIGIN}/`,
             image: toAbsoluteUrl(data.profile.avatar),
             jobTitle: 'UI/UX Designer & Developer',
             description: getText(data.profile.bio)
@@ -200,7 +200,7 @@ function updateStructuredData(data) {
         publisher: {
             '@type': 'Person',
             name: 'Victor42',
-            url: data.profile.website.url
+            url: `${SITE_ORIGIN}/`
         },
         inLanguage: currentLanguage === 'zh' ? 'zh-CN' : 'en',
         copyrightYear: '2011',
@@ -249,7 +249,7 @@ function renderPage(data) {
     footer.appendChild(document.createTextNode(`© 2011 - ${currentYear} `));
 
     const authorLink = document.createElement('a');
-    authorLink.href = data.profile.website.url;
+    authorLink.href = `${SITE_ORIGIN}/`;
     authorLink.target = '_blank';
     authorLink.rel = 'noopener noreferrer';
     authorLink.textContent = 'Victor42';
