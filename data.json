@@ -318,6 +318,18 @@
       }
     },
     {
+      "emoji": "♾️",
+      "name": {
+        "zh": "康托对角线互动展",
+        "en": "Uncountable · Diagonal Exhibit"
+      },
+      "url": "https://uncountable.victor42.work/",
+      "description": {
+        "zh": "博物馆级互动展品：六个展厅，从伽利略悖论到康托对角线证明，亲手发现无穷不止一种。",
+        "en": "A museum-grade interactive exhibit: six galleries from Galileo's paradox to Cantor's diagonal argument — discover that infinity comes in more than one size."
+      }
+    },
+    {
       "emoji": "🧮",
       "name": {
         "zh": "蒲丰投针实验",
