@@ -31,7 +31,9 @@ victor42-work/
 │   ├── background_dark.js # 可移植星云背景（StarfieldBackground）
 │   ├── style.css       # 布局与主题样式
 │   └── images/         # 头像、封面、favicon
-├── sitemap.xml         # 仅本域可索引 URL
+├── scripts/
+│   └── generate_sitemap.py  # 从 data.json 生成 sitemap.xml
+├── sitemap.xml         # 仅本域可索引 URL（脚本生成）
 ├── robots.txt
 ├── notes.md            # 本备忘录
 ├── README.md
@@ -182,18 +184,24 @@ victor42-work/
 
 ### 5.2 Sitemap 收录规则
 
-`sitemap.xml` **只收录本站可声明所有权的 URL**（搜索引擎会忽略跨站条目）：
+`sitemap.xml` **只收录本站可声明所有权的 URL**（搜索引擎会忽略跨站条目），由 `scripts/generate_sitemap.py` 从 `data.json` 生成：
 
 | 类型 | 是否写入 sitemap | 说明 |
 |------|------------------|------|
 | `https://victor42.work/` | 必须 | 本页，priority `1.0` |
-| `https://*.victor42.work/` 产品子域 | **不写** | 由各产品站点维护自己的 sitemap；这里只保留卡片外链 |
+| `https://*.victor42.work/` 产品子域 | 必须 | priority `0.8`，`changefreq` monthly |
 | GitHub / GitHub Pages / 飞书 / GreasyFork 等 | **不写** | 外链只在 `data.json` 卡片中出现 |
+
+```bash
+python3 scripts/generate_sitemap.py
+```
+
+脚本会写入首页 + 所有 `*.victor42.work` 产品 URL，并将各条 `<lastmod>` 设为运行当日。
 
 **加产品流程：**
 
 1. 在 `data.json` 追加条目（中英文案、`url`，可选 `image`）
-2. `sitemap.xml` 只维护 `https://victor42.work/`，产品子域不在此重复收录
+2. 运行 `python3 scripts/generate_sitemap.py` 刷新 `sitemap.xml`
 3. 更新 `main.js` 的 `DATA_URL` 与 `SITE_DATE_MODIFIED`，以及 `index.html` 内 JSON-LD `dateModified`、CSS/JS 的 `?v=`
 4. 若新增封面图，放入 `assets/images/`
 
