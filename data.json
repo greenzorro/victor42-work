@@ -138,6 +138,18 @@
       }
     },
     {
+      "emoji": "🧩",
+      "name": {
+        "zh": "Agent Skills",
+        "en": "Agent Skills"
+      },
+      "url": "https://skills.victor42.work/",
+      "description": {
+        "zh": "给 AI Agent 用的能力包：读诗、任务交接、文件处理等。每个 skill 有独立安装页，把链接丢给你的 AI 即可安装。",
+        "en": "Capability packs for AI agents — poetry reading, task handoff, file toolkit, and more. Share a link; your agent installs it."
+      }
+    },
+    {
       "emoji": "✈️",
       "name": {
         "zh": "旅行攻略集",

@@ -243,10 +243,9 @@ function renderPage(data) {
 
     document.getElementById('description').textContent = getText(data.description);
 
-    const currentYear = new Date().getFullYear();
     const footer = document.getElementById('footer-text');
     footer.textContent = '';
-    footer.appendChild(document.createTextNode(`© 2011 - ${currentYear} `));
+    footer.appendChild(document.createTextNode('Created by '));
 
     const authorLink = document.createElement('a');
     authorLink.href = `${SITE_ORIGIN}/`;
@@ -254,6 +253,14 @@ function renderPage(data) {
     authorLink.rel = 'noopener noreferrer';
     authorLink.textContent = 'Victor42';
     footer.appendChild(authorLink);
+    footer.appendChild(document.createTextNode(' & '));
+
+    const vikLink = document.createElement('a');
+    vikLink.href = 'https://github.com/agent-vik/about-me';
+    vikLink.target = '_blank';
+    vikLink.rel = 'noopener noreferrer';
+    vikLink.textContent = 'Vik';
+    footer.appendChild(vikLink);
     footer.appendChild(document.createTextNode(' | '));
 
     const codeLink = document.createElement('a');
