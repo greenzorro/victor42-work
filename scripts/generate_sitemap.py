@@ -29,6 +29,9 @@ def normalize_loc(url: str) -> str:
 
 def is_owned_product_host(hostname: str) -> bool:
     host = hostname.lower()
+    # cloud.* is the R2 file bucket (share/*.pptx etc.), not a product site.
+    if host == f"cloud.{SITE_HOST}":
+        return False
     return host.endswith(f".{SITE_HOST}") and host != SITE_HOST
 
 

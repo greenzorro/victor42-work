@@ -190,6 +190,7 @@ victor42-work/
 |------|------------------|------|
 | `https://victor42.work/` | 必须 | 本页，priority `1.0` |
 | `https://*.victor42.work/` 产品子域 | 必须 | priority `0.8`，`changefreq` monthly |
+| `https://cloud.victor42.work/share/...` 文件直链 | **不写** | R2 公共桶，非产品页 |
 | GitHub / GitHub Pages / 飞书 / GreasyFork 等 | **不写** | 外链只在 `data.json` 卡片中出现 |
 
 ```bash
