@@ -6,9 +6,9 @@
  * Pipeline:
  *  1) Pre-render face-on continuous density field (arms, dust cutouts, color)
  *  2) Soft multi-pass blur (nebula body, not particle beads)
- *  3) Each frame: draw texture with tilt squash + in-plane spin
- *  4) Overlay 3D-projected star particles (depth, near-side thickness)
- *  5) Soft bulge bloom + deep-field stars
+ *  3) Bake static sky and field-star glow sprites for reuse
+ *  4) Each frame: blit sky, draw disk slices with tilt squash + live bulge bloom
+ *  5) Overlay 3D-projected star particles (depth-sorted every few frames)
  *
  * Dynamics: CCW disk spin; trailing log spirals θ = -ln(r)/b.
  * API: StarfieldBackground.init / prepare / prepareAsync / start / stop / isRunning / destroy
@@ -94,6 +94,10 @@
         return lobe;
     });
 
+    const GLOW_SPRITE_RADII = [10, 20, 35, 50, 70, 100];
+    const SORT_EVERY_N_FRAMES = 3;
+    const ASSET_REBUILD_AREA_RATIO = 0.15;
+
     const state = {
         canvas: null,
         ctx: null,
@@ -105,6 +109,9 @@
         brightField: null,
         haloStars: null,
         brightHalo: null,
+        skyCanvas: null,
+        skyCtx: null,
+        glowSprites: null,
         angle: 0,
         raf: 0,
         running: false,
@@ -114,6 +121,9 @@
         cssW: 0,
         cssH: 0,
         scale: 1,
+        assetArea: 0,
+        assetScale: 1,
+        sortFrameCounter: 0,
         resizeTimer: 0,
         listenersBound: false,
         motionQuery: null,
@@ -139,6 +149,79 @@
 
     function prefersReducedMotion() {
         return getMotionQuery().matches;
+    }
+
+    function isNarrowViewport() {
+        return state.cssW > 0 && state.cssW < 640;
+    }
+
+    function getAdaptiveDpr() {
+        const cap = isNarrowViewport()
+            ? Math.min(state.options.dprCap, 1.25)
+            : state.options.dprCap;
+        return Math.min(global.devicePixelRatio || 1, cap);
+    }
+
+    function getContentScale() {
+        const area = state.cssW * state.cssH;
+        const base = clamp(area / (1280 * 800), 0.7, 1.3);
+        return isNarrowViewport() ? base * 0.82 : base;
+    }
+
+    function getTargetFps() {
+        return isNarrowViewport() ? 24 : state.options.targetFps;
+    }
+
+    function pickGlowSpriteIndex(radius) {
+        const radii = GLOW_SPRITE_RADII;
+        let best = 0;
+        for (let i = 1; i < radii.length; i++) {
+            if (Math.abs(radii[i] - radius) < Math.abs(radii[best] - radius)) {
+                best = i;
+            }
+        }
+        return best;
+    }
+
+    function buildGlowSpriteCanvas(radius, stops) {
+        const pad = 2;
+        const size = Math.ceil(radius * 2) + pad * 2;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        const cx = size * 0.5;
+        const cy = size * 0.5;
+        const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+        for (let i = 0; i < stops.length; i++) {
+            gradient.addColorStop(stops[i][0], stops[i][1]);
+        }
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.fill();
+        return { canvas: canvas, radius: radius };
+    }
+
+    function buildGlowSprites() {
+        const sprites = { field: [], halo: [] };
+        for (let i = 0; i < GLOW_SPRITE_RADII.length; i++) {
+            const radius = GLOW_SPRITE_RADII[i];
+            sprites.field.push(buildGlowSpriteCanvas(radius, FIELD_GLOW_STOPS));
+            sprites.halo.push(buildGlowSpriteCanvas(radius, HALO_GLOW_STOPS));
+        }
+        state.glowSprites = sprites;
+    }
+
+    function drawGlowSprite(ctx, x, y, radius, kind, alpha) {
+        const sprites = state.glowSprites[kind];
+        if (!sprites) return;
+        const sprite = sprites[pickGlowSpriteIndex(radius)];
+        const size = sprite.radius * 2;
+        const prevAlpha = ctx.globalAlpha;
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(sprite.canvas, x - sprite.radius, y - sprite.radius, size, size);
+        ctx.globalAlpha = prevAlpha;
     }
 
     function mulberry32(seed) {
@@ -659,6 +742,8 @@
             const cr = Math.round(lerp(190, 255, rand()));
             const cg = Math.round(lerp(200, 255, rand()));
             const star = {
+                nx: x,
+                ny: y,
                 sx: x * state.cssW,
                 sy: y * state.cssH,
                 size: size,
@@ -697,6 +782,9 @@
             const cb = Math.round(lerp(170, 225, rand()));
             const projected = projectInto(state.projectionScratch, x, y, z, 1, 0);
             const star = {
+                x: x,
+                y: y,
+                z: z,
                 sx: state.cssW * 0.5 + projected.x * state.scale,
                 sy: state.cssH * 0.52 + projected.y * state.scale * 0.9,
                 size: size,
@@ -710,15 +798,18 @@
 
     function ensureAssets() {
         if (state.texture) return;
-        const area = state.cssW * state.cssH;
-        const scale = clamp(area / (1280 * 800), 0.7, 1.3);
+        const scale = getContentScale();
         const tex = Math.round(state.options.textureSize * clamp(scale, 0.85, 1.1));
         commitAssets(buildGalaxyTexture(tex), scale);
     }
 
     function commitAssets(texture, scale) {
         state.texture = texture;
-        state.particles = buildParticles(Math.round(state.options.particleCount * scale));
+        state.assetScale = scale;
+        state.assetArea = state.cssW * state.cssH;
+        const particleScale = isNarrowViewport() ? scale * 0.88 : scale;
+        const fieldScale = isNarrowViewport() ? scale * 0.85 : scale;
+        state.particles = buildParticles(Math.round(state.options.particleCount * particleScale));
         state.projected = new Array(state.particles.length);
         for (let i = 0; i < state.projected.length; i++) {
             const particle = state.particles[i];
@@ -732,17 +823,21 @@
                 brightness: particle.brightness,
                 rgbaPrefix: particle.rgbaPrefix,
                 kind: particle.kind,
-                zAbs: particle.zAbs
+                zAbs: particle.zAbs,
+                particleIndex: i
             };
         }
         state.visibleProjected = [];
         state.scale = Math.min(state.cssW, state.cssH) * state.options.scaleFactor;
-        const field = buildFieldStars(Math.round(state.options.fieldStarCount * scale));
+        const field = buildFieldStars(Math.round(state.options.fieldStarCount * fieldScale));
         state.fieldStars = field.stars;
         state.brightField = field.bright;
         const halo = buildHaloStars(Math.round(260 * scale));
         state.haloStars = halo.stars;
         state.brightHalo = halo.bright;
+        buildGlowSprites();
+        buildSkyCache();
+        state.sortFrameCounter = 0;
     }
 
     function ensureAssetsAsync(urgent) {
@@ -750,8 +845,7 @@
         if (urgent) state.buildUrgent = true;
         if (state.preparePromise) return state.preparePromise;
 
-        const area = state.cssW * state.cssH;
-        const scale = clamp(area / (1280 * 800), 0.7, 1.3);
+        const scale = getContentScale();
         const tex = Math.round(state.options.textureSize * clamp(scale, 0.85, 1.1));
         const token = state.assetBuildToken;
         const promise = buildGalaxyTextureAsync(tex, token).then(function(texture) {
@@ -770,6 +864,11 @@
         return promise;
     }
 
+    function invalidateSkyCache() {
+        state.skyCanvas = null;
+        state.skyCtx = null;
+    }
+
     function invalidateAssets() {
         state.assetBuildToken++;
         state.preparePromise = null;
@@ -782,12 +881,17 @@
         state.brightField = null;
         state.haloStars = null;
         state.brightHalo = null;
+        state.glowSprites = null;
+        state.assetArea = 0;
+        state.assetScale = 1;
+        state.sortFrameCounter = 0;
+        invalidateSkyCache();
     }
 
     function viewportNeedsSync() {
         const cssW = global.innerWidth;
         const cssH = global.innerHeight;
-        const dpr = Math.min(global.devicePixelRatio || 1, state.options.dprCap);
+        const dpr = getAdaptiveDpr();
         return state.cssW !== cssW
             || state.cssH !== cssH
             || state.dpr !== dpr;
@@ -797,16 +901,27 @@
         if (!state.canvas) return false;
         const cssW = global.innerWidth;
         const cssH = global.innerHeight;
-        const dpr = Math.min(global.devicePixelRatio || 1, state.options.dprCap);
+        const dpr = getAdaptiveDpr();
         const changed = state.cssW !== cssW
             || state.cssH !== cssH
             || state.dpr !== dpr;
         if (!changed) return false;
 
+        const newArea = cssW * cssH;
+        const significantAssetChange = state.assetArea === 0
+            || Math.abs(newArea - state.assetArea) / state.assetArea > ASSET_REBUILD_AREA_RATIO;
+
         state.cssW = cssW;
         state.cssH = cssH;
         state.dpr = dpr;
-        invalidateAssets();
+
+        if (significantAssetChange) {
+            invalidateAssets();
+        } else if (state.texture) {
+            state.scale = Math.min(state.cssW, state.cssH) * state.options.scaleFactor;
+            resyncFieldStarPositions();
+            buildSkyCache();
+        }
         return true;
     }
 
@@ -836,6 +951,146 @@
         return ensureAssetsAsync(Boolean(urgent));
     }
 
+    function resyncFieldStarPositions() {
+        const field = state.fieldStars;
+        if (field) {
+            for (let i = 0; i < field.length; i++) {
+                const st = field[i];
+                st.sx = st.nx * state.cssW;
+                st.sy = st.ny * state.cssH;
+            }
+        }
+        const halo = state.haloStars;
+        if (halo) {
+            for (let i = 0; i < halo.length; i++) {
+                const st = halo[i];
+                const projected = projectInto(
+                    state.projectionScratch,
+                    st.x,
+                    st.y,
+                    st.z,
+                    1,
+                    0
+                );
+                st.sx = state.cssW * 0.5 + projected.x * state.scale;
+                st.sy = state.cssH * 0.52 + projected.y * state.scale * 0.9;
+            }
+        }
+    }
+
+    function paintStaticSky(ctx, w, h) {
+        // Field/halo dots + baked glow sprites; called when building the sky cache.
+        drawSpaceGradient(ctx, w, h);
+
+        const field = state.fieldStars;
+        if (field) {
+            for (let i = 0; i < field.length; i++) {
+                const st = field[i];
+                ctx.beginPath();
+                ctx.fillStyle = st.fillStyle;
+                ctx.arc(st.sx, st.sy, st.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        const brightField = state.brightField;
+        if (brightField) {
+            for (let i = 0; i < brightField.length; i++) {
+                const st = brightField[i];
+                drawGlowSprite(ctx, st.sx, st.sy, st.size * 7, 'field', 1);
+                drawSpike(ctx, st.sx, st.sy, st.size * 6.5, 0.14);
+            }
+        }
+
+        const halo = state.haloStars;
+        if (halo) {
+            for (let i = 0; i < halo.length; i++) {
+                const st = halo[i];
+                ctx.beginPath();
+                ctx.fillStyle = st.fillStyle;
+                ctx.arc(st.sx, st.sy, st.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        const brightHalo = state.brightHalo;
+        if (brightHalo) {
+            for (let i = 0; i < brightHalo.length; i++) {
+                const st = brightHalo[i];
+                drawGlowSprite(ctx, st.sx, st.sy, st.size * 5, 'halo', 1);
+            }
+        }
+    }
+
+    function buildSkyCache() {
+        if (!state.fieldStars || state.cssW <= 0 || state.cssH <= 0) return;
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(state.cssW * state.dpr));
+        canvas.height = Math.max(1, Math.round(state.cssH * state.dpr));
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+        ctx.clearRect(0, 0, state.cssW, state.cssH);
+        paintStaticSky(ctx, state.cssW, state.cssH);
+        state.skyCanvas = canvas;
+        state.skyCtx = ctx;
+    }
+
+    function paintBulgeContents(ctx, bx, by, s) {
+        const rx = s * 0.29;
+        const ry = s * 0.094 * (0.85 + state.squashY * 0.4);
+        const barRot = (state.options.yawDeg * Math.PI) / 180;
+
+        softEllipse(ctx, bx, by, s * 0.34, s * 0.072, barRot, BULGE_BAR_STOPS);
+        const barLobeSep = s * 0.10;
+        const brx = s * 0.13;
+        const bry = s * 0.07;
+        const bcos = Math.cos(barRot);
+        const bsin = Math.sin(barRot);
+        softEllipse(
+            ctx,
+            bx + barLobeSep * bcos,
+            by + barLobeSep * bsin,
+            brx,
+            bry,
+            barRot,
+            BULGE_SIDE_STOPS
+        );
+        softEllipse(
+            ctx,
+            bx - barLobeSep * bcos,
+            by - barLobeSep * bsin,
+            brx,
+            bry,
+            barRot,
+            BULGE_SIDE_STOPS
+        );
+
+        for (let i = 0; i < BULGE_LOBES.length; i++) {
+            const L = BULGE_LOBES[i];
+            softEllipse(
+                ctx,
+                bx + L.dx * s,
+                by + L.dy * s,
+                rx * 2.4 * L.sx,
+                ry * 2.6 * L.sy,
+                L.rot,
+                L.stops
+            );
+        }
+
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        softEllipse(ctx, bx, by, rx * 1.25, ry * 1.35, -0.28, BULGE_OUTER_STOPS);
+        softEllipse(
+            ctx,
+            bx + s * 0.01,
+            by - s * 0.005,
+            rx * 0.42,
+            ry * 0.45,
+            -0.2,
+            BULGE_INNER_STOPS
+        );
+        ctx.restore();
+    }
+
     function softRadial(ctx, x, y, r1, stops) {
         const g = ctx.createRadialGradient(x, y, 0, x, y, r1);
         for (let i = 0; i < stops.length; i++) {
@@ -848,6 +1103,8 @@
     }
 
     function drawParticleGlow(ctx, particle, radius, alpha) {
+        // Per-particle radial glow (core/bright stars). Color matches the star;
+        // not sprite-baked, so overlapping cores still read as continuous bloom.
         const gradient = ctx.createRadialGradient(
             particle.sx,
             particle.sy,
@@ -903,48 +1160,14 @@
         ctx.fillRect(0, 0, w, h);
     }
 
-    function drawField(ctx) {
-        const stars = state.fieldStars;
-        for (let i = 0; i < stars.length; i++) {
-            const st = stars[i];
-            ctx.beginPath();
-            ctx.fillStyle = st.fillStyle;
-            ctx.arc(st.sx, st.sy, st.size, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        const bright = state.brightField;
-        for (let i = 0; i < bright.length; i++) {
-            const st = bright[i];
-            softRadial(ctx, st.sx, st.sy, st.size * 7, FIELD_GLOW_STOPS);
-            drawSpike(ctx, st.sx, st.sy, st.size * 6.5, 0.14);
-        }
-    }
-
-    function drawHalo(ctx) {
-        if (!state.haloStars) return;
-        const stars = state.haloStars;
-        const bright = state.brightHalo;
-        for (let i = 0; i < stars.length; i++) {
-            const st = stars[i];
-            ctx.beginPath();
-            ctx.fillStyle = st.fillStyle;
-            ctx.arc(st.sx, st.sy, st.size, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        for (let i = 0; i < bright.length; i++) {
-            const st = bright[i];
-            softRadial(ctx, st.sx, st.sy, st.size * 5, HALO_GLOW_STOPS);
-        }
-    }
-
     // Draw a single 3D-sliced layer of the galaxy disk at a specific Z-offset
     function drawGalaxySlice(ctx, cx, cy, s, angle, z, opacity, scaleFactor) {
         if (!state.texture) return;
         const tex = state.texture;
-        
+
         // Project the Z-offset (0, 0, z) into screen coordinates
         const pr = projectInto(state.projectionScratch, 0, 0, z, 1, 0);
-        
+
         // Base off-center offset + projected translation
         const ox = s * 0.02 + pr.x * s;
         const oy = s * -0.015 + pr.y * s * 0.9;
@@ -957,72 +1180,22 @@
         ctx.rotate(angle);
         ctx.globalAlpha = opacity;
         ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
+        ctx.imageSmoothingQuality = 'medium';
         ctx.drawImage(tex, -half, -half, half * 2, half * 2);
         ctx.restore();
     }
 
     function drawBulge(ctx, cx, cy, s, cosA, sinA) {
-        // Nucleus offset from the geometric center.
         const p = projectInto(state.projectionScratch, 0.035, -0.02, 0.002, cosA, sinA);
         const bx = cx + p.x * s;
         const by = cy + p.y * s * 0.9;
-        const rx = s * 0.29;
-        const ry = s * 0.094 * (0.85 + state.squashY * 0.4);
-        const barRot = (state.options.yawDeg * Math.PI) / 180;
 
-        // The bulge must co-rotate with the disk pattern. We draw it in a
-        // local coordinate system centered on the nucleus, rotated by the
-        // in-plane disk angle so the bar/lobes spin with the arms.
+        // Live draw preserves lighter-composited bloom blending with disk layers.
         ctx.save();
         ctx.translate(bx, by);
         ctx.rotate(state.angle);
         ctx.translate(-bx, -by);
-
-        // Boxy peanut bar along the line of nodes (Andromeda-like pseudo-bar)
-        // Main bar: elongated warm glow (brighter core)
-        softEllipse(ctx, bx, by, s * 0.34, s * 0.072, barRot, BULGE_BAR_STOPS);
-        // Peanut side lobes
-        const barLobeSep = s * 0.10;
-        const brx = s * 0.13;
-        const bry = s * 0.07;
-        const bcos = Math.cos(barRot);
-        const bsin = Math.sin(barRot);
-        const lobe1x = bx + barLobeSep * bcos;
-        const lobe1y = by + barLobeSep * bsin;
-        const lobe2x = bx - barLobeSep * bcos;
-        const lobe2y = by - barLobeSep * bsin;
-        softEllipse(ctx, lobe1x, lobe1y, brx, bry, barRot, BULGE_SIDE_STOPS);
-        softEllipse(ctx, lobe2x, lobe2y, brx, bry, barRot, BULGE_SIDE_STOPS);
-
-        // Multi-lobe bloom around the core.
-        for (let i = 0; i < BULGE_LOBES.length; i++) {
-            const L = BULGE_LOBES[i];
-            softEllipse(
-                ctx,
-                bx + L.dx * s,
-                by + L.dy * s,
-                rx * 2.4 * L.sx,
-                ry * 2.6 * L.sy,
-                L.rot,
-                L.stops
-            );
-        }
-
-        ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-        softEllipse(ctx, bx, by, rx * 1.25, ry * 1.35, -0.28, BULGE_OUTER_STOPS);
-        softEllipse(
-            ctx,
-            bx + s * 0.01,
-            by - s * 0.005,
-            rx * 0.42,
-            ry * 0.45,
-            -0.2,
-            BULGE_INNER_STOPS
-        );
-        ctx.restore();
-
+        paintBulgeContents(ctx, bx, by, s);
         ctx.restore();
     }
 
@@ -1032,7 +1205,7 @@
             return;
         }
 
-        const frameInterval = 1000 / state.options.targetFps;
+        const frameInterval = 1000 / getTargetFps();
         if (state.lastTs && ts - state.lastTs < frameInterval - 1) {
             state.raf = global.requestAnimationFrame(frame);
             return;
@@ -1056,33 +1229,54 @@
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.clearRect(0, 0, w, h);
 
-        drawSpaceGradient(ctx, w, h);
-        drawField(ctx);
-        drawHalo(ctx);
+        if (state.skyCanvas) {
+            ctx.drawImage(state.skyCanvas, 0, 0, w, h);
+        } else {
+            paintStaticSky(ctx, w, h);
+        }
+
         // 1. Project particle positions and retain only entries that can be drawn.
         const projectionSlots = state.projected;
         const projected = state.visibleProjected;
-        let projectedCount = 0;
-        for (let i = 0; i < particles.length; i++) {
-            const p = particles[i];
-            const out = projectionSlots[i];
-            projectInto(out, p.x, p.y, p.z, cosA, sinA);
-            out.sx = cx + out.x * s;
-            out.sy = cy + out.y * s * 0.9;
-            if (out.sx < -40 || out.sy < -40 || out.sx > w + 40 || out.sy > h + 40) {
-                continue;
+        state.sortFrameCounter++;
+        const shouldResort = projected.length === 0
+            || state.sortFrameCounter % SORT_EVERY_N_FRAMES === 0;
+
+        if (shouldResort) {
+            let projectedCount = 0;
+            for (let i = 0; i < particles.length; i++) {
+                const p = particles[i];
+                const out = projectionSlots[i];
+                projectInto(out, p.x, p.y, p.z, cosA, sinA);
+                out.sx = cx + out.x * s;
+                out.sy = cy + out.y * s * 0.9;
+                if (out.sx < -40 || out.sy < -40 || out.sx > w + 40 || out.sy > h + 40) {
+                    continue;
+                }
+                projected[projectedCount++] = out;
             }
-            projected[projectedCount++] = out;
+            projected.length = projectedCount;
+            projected.sort(compareDepth);
+        } else {
+            let write = 0;
+            for (let i = 0; i < projected.length; i++) {
+                const out = projected[i];
+                const p = particles[out.particleIndex];
+                projectInto(out, p.x, p.y, p.z, cosA, sinA);
+                out.sx = cx + out.x * s;
+                out.sy = cy + out.y * s * 0.9;
+                if (out.sx < -40 || out.sy < -40 || out.sx > w + 40 || out.sy > h + 40) {
+                    continue;
+                }
+                projected[write++] = out;
+            }
+            projected.length = write;
         }
-        projected.length = projectedCount;
 
-        // 2. Sort visible particles by depth from back to front.
-        projected.sort(compareDepth);
-
-        // 3. Reuse the depth-sorted disk and bulge slices for this view matrix.
+        // 2. Reuse the depth-sorted disk and bulge slices for this view matrix.
         const staticItems = state.staticItems;
 
-        // 4. Merge the depth-sorted slices, bulge, and stars into one draw pass.
+        // 3. Merge the depth-sorted slices, bulge, and stars into one draw pass.
         let pIdx = 0;
         let sIdx = 0;
         const numParticles = projected.length;
