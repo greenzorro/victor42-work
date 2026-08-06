@@ -6,7 +6,8 @@
  * Pipeline:
  *  1) Build deterministic branch-and-leaf silhouettes on offscreen canvases
  *  2) Pre-blur and fade three depth layers to create a natural penumbra
- *  3) Each frame: drive damped spring transforms with a shared gust force
+ *  3) Seed elapsed time and spring state to the staggered wind field, then
+ *     each frame drive damped spring transforms with that shared gust force
  *
  * API: LeafShadowBackground.init / prepare / start / stop / isRunning / destroy
  */
@@ -535,11 +536,38 @@
         state.layers = null;
     }
 
-    function resetLayerMotion() {
+    // Shared gust sampled at each group's delayed time, with a small phase-tied
+    // response wobble. Used both for per-frame stepping and for startup sync.
+    function layerWindForce(time, spec) {
+        const delayedGust = gustForceAt(time - spec.gustDelay)
+            * state.options.windStrength;
+        const response = 0.92
+            + Math.sin(time * spec.responseSpeed + spec.phase) * 0.08;
+        return delayedGust * response * spec.forceScale;
+    }
+
+    // Jump past t=0 so gustDelay / phase offsets are already separating groups
+    // on the first animated frame instead of settling from a shared rest pose.
+    function seedElapsedIfNeeded() {
+        if (state.elapsed > 0) return;
+        const random = mulberry32(state.options.seed + 919);
+        state.elapsed = 2 + random() * 5;
+    }
+
+    // Place each spring at the quasi-static wind equilibrium for `time`, with
+    // velocity matching the local force derivative so motion continues mid-sway.
+    function syncSpringsToWind(time) {
         if (!state.layers) return;
+        const sampleDt = 1 / 60;
         for (let i = 0; i < state.layers.length; i++) {
-            state.layers[i].spring.displacement = 0;
-            state.layers[i].spring.velocity = 0;
+            const layer = state.layers[i];
+            const spec = layer.spec;
+            const force = layerWindForce(time, spec);
+            const forceAhead = layerWindForce(time + sampleDt, spec);
+            layer.spring.displacement = force / spec.stiffness;
+            layer.spring.velocity = (forceAhead - force)
+                / spec.stiffness
+                / sampleDt;
         }
     }
 
@@ -565,7 +593,7 @@
         }
         state.maskCtx = state.maskCanvas.getContext('2d');
         ensureLayers();
-        resetLayerMotion();
+        syncSpringsToWind(state.elapsed);
     }
 
     function needsResize() {
@@ -642,15 +670,10 @@
         for (let i = 0; i < state.layers.length; i++) {
             const layer = state.layers[i];
             const spec = layer.spec;
-            // The same wind field reaches branch groups and depth layers at
-            // staggered delays, separating their peaks while preserving direction.
-            const delayedGust = gustForceAt(time - spec.gustDelay)
-                * state.options.windStrength;
-            const response = 0.92
-                + Math.sin(time * spec.responseSpeed + spec.phase) * 0.08;
+            const force = layerWindForce(time, spec);
             stepSpring(
                 layer.spring,
-                delayedGust * response * spec.forceScale,
+                force,
                 dt,
                 spec.stiffness,
                 spec.damping
@@ -708,12 +731,18 @@
     function renderStatic() {
         if (!state.canvas || !state.wantRun || document.visibilityState !== 'visible') return;
         if (needsResize()) resize();
+        seedElapsedIfNeeded();
+        ensureLayers();
+        syncSpringsToWind(state.elapsed);
         draw(state.elapsed, 0);
     }
 
     function startLoop() {
         if (!state.canvas || state.running || !state.wantRun || !canAnimate()) return;
         if (needsResize()) resize();
+        seedElapsedIfNeeded();
+        ensureLayers();
+        syncSpringsToWind(state.elapsed);
         state.running = true;
         state.lastTs = 0;
         draw(state.elapsed, 0);
