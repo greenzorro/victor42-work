@@ -114,30 +114,6 @@
       "image": "assets/images/%E8%87%AA%E5%8A%A8%E5%8C%96AI%E6%8F%92%E7%94%BB%E7%94%9F%E6%88%90%E7%B3%BB%E7%BB%9F.webp"
     },
     {
-      "emoji": "📊",
-      "name": {
-        "zh": "Excel模板",
-        "en": "Excel Life Toolkits"
-      },
-      "url": "https://qvokpfxqsh.feishu.cn/wiki/G8OywdlWji0H31kJ0KwciaJ8nAd",
-      "description": {
-        "zh": "自制一些Excel模板，用于计算出门时间、医院排队、家庭现金流等，会持续补充新品。毕竟，我可是Excel狂魔啊。",
-        "en": "A collection of Excel templates for life's logistics—departure times, hospital queues, and family finance. More coming soon from an unrepentant Excel nerd."
-      }
-    },
-    {
-      "emoji": "🖥️",
-      "name": {
-        "zh": "PPT模板",
-        "en": "PPT Layout Library"
-      },
-      "url": "https://cloud.victor42.work/share/Cola_Template.pptx",
-      "description": {
-        "zh": "自制自用的PPT模板，包含深浅两色。虽然不能拿去开发布会，但好在结构清晰布局丰富，日常内部分享、汇报是够够的了。",
-        "en": "Personal PPT templates in light and dark modes. Structured and versatile layouts designed for clear internal reporting and sharing."
-      }
-    },
-    {
       "emoji": "🧩",
       "name": {
         "zh": "Agent Skills",
@@ -147,6 +123,30 @@
       "description": {
         "zh": "给 AI Agent 用的能力包：读诗、任务交接、文件处理等。每个 skill 有独立安装页，把链接丢给你的 AI 即可安装。",
         "en": "Capability packs for AI agents — poetry reading, task handoff, file toolkit, and more. Share a link; your agent installs it."
+      }
+    },
+    {
+      "emoji": "💰",
+      "name": {
+        "zh": "LLM价格可视化",
+        "en": "LLM Price Visualization"
+      },
+      "url": "https://llm-price.victor42.work/",
+      "description": {
+        "zh": "选模型时总要翻一堆官方定价页，干脆自己画了张图：输入输出左右对比，缓存折扣一眼可见，比对着表格看数字想象直观多了。",
+        "en": "Tired of digging through official pricing pages, I drew the numbers instead — input and output side by side, cache discounts at a glance. More intuitive than staring at a table and trying to picture the numbers."
+      }
+    },
+    {
+      "emoji": "📊",
+      "name": {
+        "zh": "Excel模板",
+        "en": "Excel Life Toolkits"
+      },
+      "url": "https://qvokpfxqsh.feishu.cn/wiki/G8OywdlWji0H31kJ0KwciaJ8nAd",
+      "description": {
+        "zh": "自制一些Excel模板，用于计算出门时间、医院排队、家庭现金流等，会持续补充新品。毕竟，我可是Excel狂魔啊。",
+        "en": "A collection of Excel templates for life's logistics—departure times, hospital queues, and family finance. More coming soon from an unrepentant Excel nerd."
       }
     },
     {
