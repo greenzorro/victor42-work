@@ -171,6 +171,8 @@ victor42-work/
 
 `image` 可选；有图为大卡，无图为小卡。
 
+旅行相关产品分工：`旅行攻略集` → `https://travel.victor42.work/`（攻略门户，并可引向相册、游记与方法论）；`旅行相册` → `https://album.victor42.work/`。
+
 ## 5. SEO
 
 ### 5.1 页面侧
