@@ -305,18 +305,6 @@
       }
     },
     {
-      "emoji": "🔤",
-      "name": {
-        "zh": "PS图层批量重命名脚本",
-        "en": "PS Batch Artboard Renamer"
-      },
-      "url": "https://cloud.victor42.work/share/PS图层批量重命名.zip",
-      "description": {
-        "zh": "PS经常用于批量制作banner图，结合画板和生成图像资源功能，效率奇高。这就需要按顺序给大量画板重命名。自己写了个PS脚本，一键搞定。",
-        "en": "Streamline batch banner exports in PS. Automatically renames dozens of artboards sequentially to save you from naming headaches."
-      }
-    },
-    {
       "emoji": "♾️",
       "name": {
         "zh": "康托对角线互动展",
